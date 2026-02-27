@@ -29,6 +29,8 @@ import sys
 import os
 from datetime import datetime
 
+from translations import TRANSLATIONS
+
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -70,6 +72,16 @@ except Exception as e:
     import traceback
     traceback.print_exc()
     raise e
+
+SUPPORTED_LANGUAGES = {"English": "en", "한국어": "ko"}
+
+def t(key, **kwargs):
+    """Return the translated string for the current language."""
+    lang = st.session_state.get("language", "en")
+    text = TRANSLATIONS.get(lang, TRANSLATIONS["en"]).get(key, TRANSLATIONS["en"].get(key, key))
+    if kwargs:
+        text = text.format(**kwargs)
+    return text
 
 st.set_page_config(
     layout="wide",
@@ -235,10 +247,10 @@ def get_evolution_stages(result, exp_mode):
     planner_desc_key = f"target_{task_name}_desc0"
     if planner_img_key in result and result[planner_img_key]:
         stages.append({
-            "name": "📋 Planner",
+            "name": t("stage_planner"),
             "image_key": planner_img_key,
             "desc_key": planner_desc_key,
-            "description": "Initial diagram plan based on method content"
+            "description": t("stage_planner_desc")
         })
     
     # Stage 2: Stylist output (only for demo_full)
@@ -247,10 +259,10 @@ def get_evolution_stages(result, exp_mode):
         stylist_desc_key = f"target_{task_name}_stylist_desc0"
         if stylist_img_key in result and result[stylist_img_key]:
             stages.append({
-                "name": "✨ Stylist",
+                "name": t("stage_stylist"),
                 "image_key": stylist_img_key,
                 "desc_key": stylist_desc_key,
-                "description": "Stylistically refined description"
+                "description": t("stage_stylist_desc")
             })
     
     # Stage 3+: Critic iterations
@@ -261,11 +273,11 @@ def get_evolution_stages(result, exp_mode):
         
         if critic_img_key in result and result[critic_img_key]:
             stages.append({
-                "name": f"🔍 Critic Round {round_idx}",
+                "name": t("stage_critic_round", n=round_idx),
                 "image_key": critic_img_key,
                 "desc_key": critic_desc_key,
                 "suggestions_key": critic_sugg_key,
-                "description": f"Refined after critic feedback (iteration {round_idx})"
+                "description": t("stage_critic_round_desc", n=round_idx)
             })
     
     return stages
@@ -302,13 +314,13 @@ def display_candidate_result(result, candidate_id, exp_mode):
     if final_image_key and final_image_key in result:
         img = base64_to_image(result[final_image_key])
         if img:
-            st.image(img, use_container_width=True, caption=f"Candidate {candidate_id} (Final)")
-            
+            st.image(img, use_container_width=True, caption=t("candidate_caption", id=candidate_id))
+
             # Add download button
             buffered = BytesIO()
             img.save(buffered, format="PNG")
             st.download_button(
-                label="⬇️ Download",
+                label=t("download_candidate"),
                 data=buffered.getvalue(),
                 file_name=f"candidate_{candidate_id}.png",
                 mime="image/png",
@@ -316,15 +328,15 @@ def display_candidate_result(result, candidate_id, exp_mode):
                 use_container_width=True
             )
         else:
-            st.error(f"Failed to decode image for Candidate {candidate_id}")
+            st.error(t("error_decode", id=candidate_id))
     else:
-        st.warning(f"No image generated for Candidate {candidate_id}")
+        st.warning(t("warning_no_image", id=candidate_id))
     
     # Show evolution timeline in an expander
     stages = get_evolution_stages(result, exp_mode)
     if len(stages) > 1:
-        with st.expander(f"🔄 View Evolution Timeline ({len(stages)} stages)", expanded=False):
-            st.caption("See how the diagram evolved through different pipeline stages")
+        with st.expander(t("evolution_expander", n=len(stages)), expanded=False):
+            st.caption(t("evolution_caption"))
             
             for idx, stage in enumerate(stages):
                 st.markdown(f"### {stage['name']}")
@@ -337,17 +349,17 @@ def display_candidate_result(result, candidate_id, exp_mode):
                 
                 # Show description
                 if stage['desc_key'] in result:
-                    with st.expander(f"📝 Description", expanded=False):
+                    with st.expander(t("description_expander"), expanded=False):
                         cleaned_desc = clean_text(result[stage['desc_key']])
                         st.write(cleaned_desc)
                 
                 # Show critic suggestions if available
                 if 'suggestions_key' in stage and stage['suggestions_key'] in result:
                     suggestions = result[stage['suggestions_key']]
-                    with st.expander(f"💡 Critic Suggestions", expanded=False):
+                    with st.expander(t("critic_suggestions_expander"), expanded=False):
                         cleaned_sugg = clean_text(suggestions)
                         if cleaned_sugg.strip() == "No changes needed.":
-                            st.success("✅ No changes needed - iteration stopped.")
+                            st.success(t("no_changes_needed"))
                         else:
                             st.write(cleaned_sugg)
                 
@@ -356,91 +368,104 @@ def display_candidate_result(result, candidate_id, exp_mode):
                     st.divider()
     else:
         # If only one stage, show description in simpler expander
-        with st.expander(f"📝 View Description", expanded=False):
+        with st.expander(t("view_description_expander"), expanded=False):
             if final_desc_key and final_desc_key in result:
                 # Clean the text to remove invalid UTF-8 characters
                 cleaned_desc = clean_text(result[final_desc_key])
                 st.write(cleaned_desc)
             else:
-                st.info("No description available")
+                st.info(t("no_description"))
 
 def main():
-    st.title("🍌 PaperVizAgent Demo")
-    st.markdown("AI-powered scientific diagram generation and refinement")
-    
+    # Title row with language popover on the right
+    title_col, lang_col = st.columns([8, 1])
+    with title_col:
+        st.title(t("app_title"))
+    with lang_col:
+        with st.popover("🌐"):
+            lang_display = st.radio(
+                t("language_label"),
+                list(SUPPORTED_LANGUAGES.keys()),
+                index=list(SUPPORTED_LANGUAGES.values()).index(st.session_state.get("language", "en")),
+                key="lang_selector",
+            )
+            st.session_state["language"] = SUPPORTED_LANGUAGES[lang_display]
+
+    st.markdown(t("app_subtitle"))
+
     # Create tabs
-    tab1, tab2 = st.tabs(["📊 Generate Candidates", "✨ Refine Image"])
+    tab1, tab2 = st.tabs([t("tab_generate"), t("tab_refine")])
     
     # ==================== TAB 1: Generate Candidates ====================
     with tab1:
-        st.markdown("### Generate multiple diagram candidates from your method section and caption")
-        
+        st.markdown(t("generate_header"))
+
         # Sidebar configuration for Tab 1
         with st.sidebar:
-            st.title("⚙️ Generation Settings")
-            
+            st.title(t("sidebar_generation_title"))
+
             exp_mode = st.selectbox(
-                "Pipeline Mode",
+                t("pipeline_mode_label"),
                 ["demo_planner_critic", "demo_full"],
                 index=0,
                 key="tab1_exp_mode",
-                help="Select which agent pipeline to use"
+                help=t("pipeline_mode_help")
             )
-            
+
             mode_info = {
-                "demo_planner_critic": "Planner → Visualizer → Critic → Visualizer",
-                "demo_full": "Retriever → Planner → Stylist → Visualizer → Critic → Visualizer. (The stylist can make the diagram more aesthetically pleasing, but prone to be overly simplied. So we recommend trying both modes and select the best one)"
+                "demo_planner_critic": t("pipeline_planner_critic"),
+                "demo_full": t("pipeline_full")
             }
-            st.info(f"**Pipeline:** {mode_info[exp_mode]}")
-            
+            st.info(t("pipeline_info", pipeline=mode_info[exp_mode]))
+
             retrieval_setting = st.selectbox(
-                "Retrieval Setting",
+                t("retrieval_label"),
                 ["auto", "manual", "random", "none"],
                 index=0,
                 key="tab1_retrieval_setting",
-                help="How to retrieve reference diagrams: auto (automatic selection), manual (use specified references), random (random selection), none (no retrieval)"
+                help=t("retrieval_help")
             )
-            
+
             num_candidates = st.number_input(
-                "Number of Candidates",
+                t("num_candidates_label"),
                 min_value=1,
                 max_value=20,
                 value=10,
                 key="tab1_num_candidates",
-                help="How many parallel candidates to generate"
+                help=t("num_candidates_help")
             )
-            
+
             aspect_ratio = st.selectbox(
-                "Aspect Ratio",
+                t("aspect_ratio_label"),
                 ["21:9", "16:9", "3:2"],
                 key="tab1_aspect_ratio",
-                help="Aspect ratio for the generated diagrams"
+                help=t("aspect_ratio_help")
             )
-            
+
             max_critic_rounds = st.number_input(
-                "Max Critic Rounds",
+                t("max_critic_rounds_label"),
                 min_value=1,
                 max_value=5,
                 value=3,
                 key="tab1_max_critic_rounds",
-                help="Maximum number of critic refinement iterations"
+                help=t("max_critic_rounds_help")
             )
-            
+
             default_model = get_config_val("defaults", "model_name", "MODEL_NAME", "YOUR_MODEL_NAME_HERE")
             options = ["", default_model] if default_model else ["", "YOUR_MODEL_NAME_HERE"]
-            
+
             model_name = st.selectbox(
-                "Model Name",
+                t("model_name_label"),
                 options,
                 index=0,
                 key="tab1_model_name",
-                help="Model name to use for reasoning"
+                help=t("model_name_help")
             )
         
         st.divider()
         
         # Input section
-        st.markdown("## 📝 Input")
+        st.markdown(t("input_header"))
         
         # Example content
         example_method = r"""## Methodology: The PaperVizAgent Framework
@@ -500,7 +525,7 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
         with col_input1:
             # Example selector for method content
             method_example = st.selectbox(
-                "Load Example (Method)",
+                t("load_example_method"),
                 ["None", "PaperVizAgent Framework"],
                 key="method_example_selector"
             )
@@ -512,17 +537,17 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
                 method_value = st.session_state.get("method_content", "")
             
             method_content = st.text_area(
-                "Method Section Content (Markdown recommended)",
+                t("method_content_label"),
                 value=method_value,
                 height=250,
-                placeholder="Paste the method section content here...",
-                help="The method section from the paper that describes the approach. Markdown format is recommended."
+                placeholder=t("method_content_placeholder"),
+                help=t("method_content_help")
             )
         
         with col_input2:
             # Example selector for caption
             caption_example = st.selectbox(
-                "Load Example (Caption)",
+                t("load_example_caption"),
                 ["None", "PaperVizAgent Framework"],
                 key="caption_example_selector"
             )
@@ -534,23 +559,23 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
                 caption_value = st.session_state.get("caption", "")
             
             caption = st.text_area(
-                "Figure Caption (Markdown recommended)",
+                t("caption_label"),
                 value=caption_value,
                 height=250,
-                placeholder="Enter the figure caption...",
-                help="The caption or description of the figure to generate. Markdown format is recommended."
+                placeholder=t("caption_placeholder"),
+                help=t("caption_help")
             )
         
         # Process button
-        if st.button("🚀 Generate Candidates", type="primary", use_container_width=True):
+        if st.button(t("generate_button"), type="primary", use_container_width=True):
             if not method_content or not caption:
-                st.error("Please provide both method content and caption!")
+                st.error(t("error_missing_input"))
             else:
                 # Save to session state
                 st.session_state["method_content"] = method_content
                 st.session_state["caption"] = caption
                 
-                with st.spinner(f"Generating {num_candidates} candidates in parallel... This may take a few minutes."):
+                with st.spinner(t("spinner_generating", n=num_candidates)):
                     # Create input data list
                     input_data_list = create_sample_inputs(
                         method_content=method_content,
@@ -590,12 +615,12 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
                                 f.write(json_string)
                             
                             st.session_state["json_file"] = str(json_filename)
-                            st.success(f"✅ Successfully generated {len(results)} candidates!")
-                            st.info(f"💾 Results saved to: `{json_filename.name}`")
+                            st.success(t("success_generated", n=len(results)))
+                            st.info(t("info_saved", name=json_filename.name))
                         except Exception as e:
-                            st.warning(f"⚠️ Generated {len(results)} candidates, but failed to save JSON: {e}")
+                            st.warning(t("warning_save_failed", n=len(results), error=e))
                     except Exception as e:
-                        st.error(f"Error during processing: {e}")
+                        st.error(t("error_processing", error=e))
                         import traceback
                         st.code(traceback.format_exc())
         
@@ -606,8 +631,8 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
             timestamp = st.session_state.get("timestamp", "N/A")
             
             st.divider()
-            st.markdown("## 🎨 Generated Candidates")
-            st.caption(f"Generated at: {timestamp} | Pipeline: {mode_info.get(current_mode, current_mode)}")
+            st.markdown(t("results_header"))
+            st.caption(t("results_caption", timestamp=timestamp, pipeline=mode_info.get(current_mode, current_mode)))
             
             # Show JSON file download if available
             if "json_file" in st.session_state:
@@ -615,12 +640,12 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
                 if json_file_path.exists():
                     col1, col2 = st.columns([3, 1])
                     with col1:
-                        st.info(f"📄 Results saved to: `{json_file_path.relative_to(Path.cwd())}`")
+                        st.info(t("info_results_saved", path=json_file_path.relative_to(Path.cwd())))
                     with col2:
                         with open(json_file_path, "r", encoding="utf-8") as f:
                             json_data = f.read()
                         st.download_button(
-                            label="⬇️ Download JSON",
+                            label=t("download_json"),
                             data=json_data,
                             file_name=json_file_path.name,
                             mime="application/json",
@@ -641,7 +666,7 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
             
             # Add ZIP download button
             st.divider()
-            st.markdown("### 💾 Batch Download")
+            st.markdown(t("batch_download_header"))
             
             try:
                 import zipfile
@@ -681,49 +706,49 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
                 
                 zip_buffer.seek(0)
                 st.download_button(
-                    label="⬇️ Download ZIP",
+                    label=t("download_zip"),
                     data=zip_buffer.getvalue(),
                     file_name=f"papervizagent_candidates_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
                     mime="application/zip",
                     use_container_width=True
                 )
-                st.success("ZIP file ready for download!")
+                st.success(t("zip_ready"))
             except Exception as e:
-                st.error(f"Failed to create ZIP: {e}")
+                st.error(t("error_zip", error=e))
     
     # ==================== TAB 2: Refine Image ====================
     with tab2:
-        st.markdown("### Refine and upscale your diagram to high resolution (2K/4K)")
-        st.caption("Upload an image from the candidates or any diagram, describe changes, and generate a high-res version")
-        
+        st.markdown(t("refine_header"))
+        st.caption(t("refine_caption"))
+
         # Sidebar for refinement settings
         with st.sidebar:
-            st.title("✨ Refinement Settings")
-            
+            st.title(t("sidebar_refine_title"))
+
             refine_resolution = st.selectbox(
-                "Target Resolution",
+                t("target_resolution_label"),
                 ["2K", "4K"],
                 index=0,
                 key="refine_resolution",
-                help="Higher resolution takes longer but produces better quality"
+                help=t("target_resolution_help")
             )
-            
+
             refine_aspect_ratio = st.selectbox(
-                "Aspect Ratio",
+                t("aspect_ratio_label"),
                 ["21:9", "16:9", "3:2"],
                 index=0,
                 key="refine_aspect_ratio",
-                help="Aspect ratio for the refined image"
+                help=t("refine_aspect_ratio_help")
             )
         
         st.divider()
         
         # Upload section
-        st.markdown("## 📤 Upload Image")
+        st.markdown(t("upload_header"))
         uploaded_file = st.file_uploader(
-            "Choose an image file",
+            t("file_uploader_label"),
             type=["png", "jpg", "jpeg"],
-            help="Upload the diagram you want to refine"
+            help=t("file_uploader_help")
         )
         
         if uploaded_file is not None:
@@ -732,24 +757,24 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("### Original Image")
+                st.markdown(t("original_image"))
                 st.image(uploaded_image, use_container_width=True)
-            
+
             with col2:
-                st.markdown("### Edit Instructions")
+                st.markdown(t("edit_instructions"))
                 edit_prompt = st.text_area(
-                    "Describe the changes you want",
+                    t("edit_prompt_label"),
                     height=200,
-                    placeholder="E.g., 'Change the color scheme to match academic paper style' or 'Make the text larger and bolder' or 'Keep everything the same but output in higher resolution'",
-                    help="Describe what you want to change or use 'Keep everything the same' for just upscaling",
+                    placeholder=t("edit_prompt_placeholder"),
+                    help=t("edit_prompt_help"),
                     key="edit_prompt"
                 )
-                
-                if st.button("✨ Refine Image", type="primary", use_container_width=True):
+
+                if st.button(t("refine_button"), type="primary", use_container_width=True):
                     if not edit_prompt:
-                        st.error("Please provide edit instructions!")
+                        st.error(t("error_no_edit_prompt"))
                     else:
-                        with st.spinner(f"Refining image to {refine_resolution} resolution... This may take a minute."):
+                        with st.spinner(t("spinner_refining", resolution=refine_resolution)):
                             try:
                                 # Convert PIL image to bytes
                                 img_byte_arr = BytesIO()
@@ -774,30 +799,30 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
                                 else:
                                     st.error(message)
                             except Exception as e:
-                                st.error(f"Error during refinement: {e}")
+                                st.error(t("error_refinement", error=e))
                                 import traceback
                                 st.code(traceback.format_exc())
             
             # Display refined result if available
             if "refined_image" in st.session_state:
                 st.divider()
-                st.markdown("## 🎨 Refined Result")
-                st.caption(f"Generated at: {st.session_state.get('refine_timestamp', 'N/A')} | Resolution: {refine_resolution}")
+                st.markdown(t("refined_result_header"))
+                st.caption(t("refined_result_caption", timestamp=st.session_state.get('refine_timestamp', 'N/A'), resolution=refine_resolution))
                 
                 col1, col2 = st.columns(2)
                 
                 with col1:
-                    st.markdown("### Before")
+                    st.markdown(t("before_label"))
                     st.image(uploaded_image, use_container_width=True)
-                
+
                 with col2:
-                    st.markdown(f"### After ({refine_resolution})")
+                    st.markdown(t("after_label", resolution=refine_resolution))
                     refined_image = Image.open(BytesIO(st.session_state["refined_image"]))
                     st.image(refined_image, use_container_width=True)
-                    
+
                     # Download button
                     st.download_button(
-                        label=f"⬇️ Download {refine_resolution} Image",
+                        label=t("download_refined", resolution=refine_resolution),
                         data=st.session_state["refined_image"],
                         file_name=f"refined_{refine_resolution}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
                         mime="image/png",
