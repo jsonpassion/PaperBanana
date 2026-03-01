@@ -381,9 +381,11 @@ def main():
     if "lang_selector" in st.session_state:
         st.session_state["language"] = SUPPORTED_LANGUAGES[st.session_state["lang_selector"]]
 
-    # Language selector as a fragment to avoid full-page rerun during generation
-    @st.fragment
-    def _language_selector():
+    # Title row with language popover on the right
+    title_col, lang_col = st.columns([8, 1])
+    with title_col:
+        st.title(t("app_title"))
+    with lang_col:
         with st.popover("🌐"):
             lang_display = st.radio(
                 t("language_label"),
@@ -392,13 +394,6 @@ def main():
                 key="lang_selector",
             )
             st.session_state["language"] = SUPPORTED_LANGUAGES[lang_display]
-
-    # Title row with language popover on the right
-    title_col, lang_col = st.columns([8, 1])
-    with title_col:
-        st.title(t("app_title"))
-    with lang_col:
-        _language_selector()
 
     st.markdown(t("app_subtitle"))
 
