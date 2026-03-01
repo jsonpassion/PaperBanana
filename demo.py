@@ -377,6 +377,10 @@ def display_candidate_result(result, candidate_id, exp_mode):
                 st.info(t("no_description"))
 
 def main():
+    # Sync language from widget state before any t() calls
+    if "lang_selector" in st.session_state:
+        st.session_state["language"] = SUPPORTED_LANGUAGES[st.session_state["lang_selector"]]
+
     # Title row with language popover on the right
     title_col, lang_col = st.columns([8, 1])
     with title_col:
