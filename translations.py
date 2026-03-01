@@ -125,6 +125,23 @@ TRANSLATIONS = {
         "after_label": "### After ({resolution})",
         "download_refined": "⬇️ Download {resolution} Image",
 
+        # Refine – Preset prompts
+        "preset_label": "Quick Edit Presets",
+        "preset_help": "Select a common edit action to auto-fill the instructions below",
+        "preset_none": "Custom (write your own)",
+        "preset_upscale": "Upscale only (keep as-is)",
+        "preset_upscale_prompt": "Keep everything exactly the same. Do not change any content, layout, colors, or text. Only output in higher resolution.",
+        "preset_fix_text": "Fix text errors",
+        "preset_fix_text_prompt": "Carefully examine all text labels, annotations, and captions in the diagram. Fix any typos, misspellings, garbled characters, or grammatically incorrect text. Keep everything else unchanged.",
+        "preset_academic_style": "Academic paper style",
+        "preset_academic_style_prompt": "Adjust the color scheme and visual style to match modern academic paper standards (clean, professional, muted colors). Keep all content and layout the same.",
+        "preset_bolder_text": "Make text larger & bolder",
+        "preset_bolder_text_prompt": "Make all text labels, annotations, and captions significantly larger and bolder for better readability. Keep the layout and content unchanged.",
+        "preset_simplify": "Simplify & declutter",
+        "preset_simplify_prompt": "Simplify the diagram by removing unnecessary decorative elements, reducing visual clutter, and improving whitespace. Keep all essential content intact.",
+        "preset_white_bg": "Clean white background",
+        "preset_white_bg_prompt": "Replace the background with a clean, pure white background. Remove any background patterns, gradients, or textures. Keep all foreground content unchanged.",
+
         # Language selector
         "language_label": "🌐 Language",
 
@@ -264,6 +281,23 @@ TRANSLATIONS = {
         "before_label": "### 이전",
         "after_label": "### 이후 ({resolution})",
         "download_refined": "⬇️ {resolution} 이미지 다운로드",
+
+        # Refine – Preset prompts
+        "preset_label": "빠른 편집 프리셋",
+        "preset_help": "자주 사용하는 편집 작업을 선택하면 아래 입력란에 자동 채워집니다",
+        "preset_none": "직접 작성",
+        "preset_upscale": "해상도만 높이기 (내용 유지)",
+        "preset_upscale_prompt": "모든 것을 그대로 유지하세요. 내용, 레이아웃, 색상, 텍스트를 변경하지 마세요. 더 높은 해상도로만 출력하세요.",
+        "preset_fix_text": "텍스트 오류 수정",
+        "preset_fix_text_prompt": "다이어그램의 모든 텍스트 라벨, 주석, 캡션을 꼼꼼히 확인하세요. 오타, 맞춤법 오류, 깨진 문자, 문법 오류를 수정하세요. 나머지는 그대로 유지하세요.",
+        "preset_academic_style": "학술 논문 스타일 적용",
+        "preset_academic_style_prompt": "현대 학술 논문 기준에 맞게 색상 구성과 시각 스타일을 조정하세요 (깔끔하고, 전문적이며, 차분한 색상). 모든 내용과 레이아웃은 유지하세요.",
+        "preset_bolder_text": "텍스트 크게 & 굵게",
+        "preset_bolder_text_prompt": "모든 텍스트 라벨, 주석, 캡션을 더 크고 굵게 만들어 가독성을 높이세요. 레이아웃과 내용은 유지하세요.",
+        "preset_simplify": "간결하게 정리",
+        "preset_simplify_prompt": "불필요한 장식 요소를 제거하고, 시각적 복잡도를 줄이며, 여백을 개선하여 다이어그램을 간결하게 정리하세요. 핵심 내용은 모두 유지하세요.",
+        "preset_white_bg": "깨끗한 흰색 배경",
+        "preset_white_bg_prompt": "배경을 깨끗한 순백색으로 교체하세요. 배경 패턴, 그라데이션, 텍스처를 제거하세요. 전경 내용은 모두 유지하세요.",
 
         # Language selector
         "language_label": "🌐 언어",

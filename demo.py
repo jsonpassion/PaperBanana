@@ -792,8 +792,28 @@ def main():
 
             with col2:
                 st.markdown(t("edit_instructions"))
+
+                # Preset prompt dropdown
+                preset_options = {
+                    t("preset_none"): "",
+                    t("preset_upscale"): t("preset_upscale_prompt"),
+                    t("preset_fix_text"): t("preset_fix_text_prompt"),
+                    t("preset_academic_style"): t("preset_academic_style_prompt"),
+                    t("preset_bolder_text"): t("preset_bolder_text_prompt"),
+                    t("preset_simplify"): t("preset_simplify_prompt"),
+                    t("preset_white_bg"): t("preset_white_bg_prompt"),
+                }
+                selected_preset = st.selectbox(
+                    t("preset_label"),
+                    list(preset_options.keys()),
+                    key="refine_preset",
+                    help=t("preset_help"),
+                )
+                preset_value = preset_options[selected_preset]
+
                 edit_prompt = st.text_area(
                     t("edit_prompt_label"),
+                    value=preset_value,
                     height=200,
                     placeholder=t("edit_prompt_placeholder"),
                     help=t("edit_prompt_help"),
