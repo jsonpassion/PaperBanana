@@ -138,8 +138,16 @@ class VisualizerAgent(BaseAgent):
         if not cfg["use_image_generation"]:
             loop = asyncio.get_running_loop()
         
+        diagram_language = data.get("diagram_language", "en")
+
         for desc_key in desc_keys_to_process:
             prompt_text = cfg["prompt_template"].format(desc=data[desc_key])
+
+            # Inject Korean rendering directive for diagram tasks
+            if diagram_language == "ko" and cfg["task_name"] == "diagram":
+                prompt_text += ("\n**IMPORTANT:** Render all text labels and annotations "
+                    "in Korean (한국어) exactly as specified. Ensure Korean text is clearly legible.")
+
             content_list = [{"type": "text", "text": prompt_text}]
             
             gen_config_args = {

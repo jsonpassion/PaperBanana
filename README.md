@@ -1,4 +1,35 @@
 # <div align="center">PaperBanana 🍌</div>
+
+## 업데이트 및 개선 사항 (원본 PaperVizAgent 소스 대비)
+
+### 2026-03-02: 기능 확장 (Phase 1-3)
+
+**Phase 1: 예제 템플릿 확장**
+- `demo.py`에 하드코딩되어 있던 예제를 독립 모듈 `example_templates.py`로 분리
+- 새 예제 3종 추가: **Transformer Architecture**, **RAG Pipeline**, **Training Pipeline (Encoder-Decoder)**
+- 예제 드롭다운이 `EXAMPLE_TEMPLATES` 딕셔너리에서 동적으로 생성 (총 4개)
+
+**Phase 2: 한글 다이어그램 생성**
+- `ExpConfig` 및 데이터 파이프라인에 `diagram_language` 필드 추가
+- 사이드바에 "다이어그램 텍스트 언어" 선택기 추가 (English / Korean)
+- 4개 에이전트에 조건부 한글 언어 지시문 삽입:
+  - `planner_agent.py`: 한글 라벨 생성 지시
+  - `visualizer_agent.py`: 한글 렌더링 지시
+  - `critic_agent.py`: 한글 라벨 보존 지시
+  - `stylist_agent.py`: 한글 라벨 보존 지시
+- 시스템 프롬프트 번역 불필요 (LLM이 영어 시스템 프롬프트 내에서도 한국어 지시를 이해)
+
+**Phase 3: Smart Input 시스템**
+- `st.radio`를 통한 3가지 입력 모드 추가: **직접 입력**, **간편 모드**, **템플릿 모드**
+- **간편 모드** (`utils/smart_input.py`): 간단한 설명 입력 → LLM이 구조화된 방법론 섹션 + 캡션 자동 생성
+- **템플릿 모드** (`input_templates.py`): Pipeline/Architecture, Comparison/Ablation, Flowchart/Process 빈칸 채우기 템플릿
+- 모든 새 UI 요소에 한/영 i18n 완전 지원
+
+### 2026-02-28: 한국어(i18n) 언어 지원
+- 한국어 UI 번역 추가 (`translations.py`)
+- 데모 UI 헤더에 언어 선택기 추가
+
+---
 <div align="center">Dawei Zhu, Rui Meng, Yale Song, Xiyu Wei, Sujian Li, Tomas Pfister and Jinsung yoon
 <br><br></div>
 
@@ -167,7 +198,8 @@ streamlit run visualize/show_referenced_eval.py
 │   ├── paperviz_processor.py
 │   ├── eval_toolkits.py
 │   ├── generation_utils.py
-│   └── image_utils.py
+│   ├── image_utils.py
+│   └── smart_input.py
 ├── visualize/
 │   ├── show_pipeline_evolution.py
 │   └── show_referenced_eval.py
@@ -181,6 +213,9 @@ streamlit run visualize/show_referenced_eval.py
 │   └── parallel_demo/
 ├── main.py
 ├── demo.py
+├── translations.py
+├── example_templates.py
+├── input_templates.py
 └── README.md
 ```
 

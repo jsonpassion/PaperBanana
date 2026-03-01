@@ -108,9 +108,16 @@ class CriticAgent(BaseAgent):
                 "text": "\n[SYSTEM NOTICE] The plot image could not be generated based on the current description (likely due to invalid code). Please check the description for errors (e.g., syntax issues, missing data) and provide a revised version."
             })
 
+        # Inject Korean label preservation directive
+        diagram_language = data.get("diagram_language", "en")
+        lang_note = ""
+        if diagram_language == "ko":
+            lang_note = ("\n**LANGUAGE NOTE:** This diagram uses Korean text labels. "
+                "Preserve all Korean labels in your revised description.")
+
         content_list.append({
             "type": "text",
-            "text": f"Detailed Description: {detailed_description}\n{cfg['context_labels'][0]}: {content}\n{cfg['context_labels'][1]}: {visual_intent}\nYour Output:",
+            "text": f"Detailed Description: {detailed_description}\n{cfg['context_labels'][0]}: {content}\n{cfg['context_labels'][1]}: {visual_intent}{lang_note}\nYour Output:",
         })
 
         response_list = await generation_utils.call_gemini_with_retry_async(

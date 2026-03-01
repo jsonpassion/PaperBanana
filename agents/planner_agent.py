@@ -98,6 +98,16 @@ class PlannerAgent(BaseAgent):
             user_prompt += " (do not include figure titles)"
         user_prompt += ":"
 
+        # Inject language directive for Korean diagram labels
+        diagram_language = data.get("diagram_language", "en")
+        if diagram_language == "ko":
+            user_prompt += ("\n\n**IMPORTANT LANGUAGE INSTRUCTION:** "
+                "All text labels, component names, annotations, and any text that will appear "
+                "visually in the diagram MUST be written in Korean (한국어). "
+                "For example, use '검색 에이전트' instead of 'Retriever Agent', "
+                "'입력' instead of 'Input'. "
+                "Technical terms and mathematical notation may remain in English.")
+
         content_list.append({"type": "text", "text": user_prompt})
 
         response_list = await generation_utils.call_gemini_with_retry_async(

@@ -27,13 +27,14 @@ from typing import Literal
 class ExpConfig:
     """Experiment configuration"""
 
-    dataset_name: Literal["PaperBananaBench"]
+    dataset_name: str
     task_name: Literal["diagram", "plot"] = "diagram"
     split_name: str = "test"
     temperature: float = 1.0
     exp_mode: str = ""
     retrieval_setting: Literal["auto", "manual", "random", "none"] = "auto"
     max_critic_rounds: int = 3
+    diagram_language: str = "en"
     model_name: str = ""
     image_model_name: str = ""
     work_dir: Path = Path(__file__).parent.parent

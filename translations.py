@@ -127,6 +127,34 @@ TRANSLATIONS = {
 
         # Language selector
         "language_label": "🌐 Language",
+
+        # Diagram language selector (Phase 2)
+        "diagram_language_label": "Diagram Text Language",
+        "diagram_language_help": "Language for text labels in the generated diagram. Korean mode generates diagrams with Korean labels.",
+
+        # Example template selector (Phase 1)
+        "example_none": "None",
+
+        # Input mode (Phase 3)
+        "input_mode_label": "Input Mode",
+        "input_mode_direct": "Direct Input",
+        "input_mode_simple": "Simple Mode",
+        "input_mode_template": "Template Mode",
+        "input_mode_help": "Direct: paste method section and caption. Simple: describe briefly and let AI generate structured text. Template: fill in a structured template.",
+
+        # Simple mode (Phase 3)
+        "simple_mode_caption": "Describe your diagram idea briefly. AI will generate a structured method section and caption for you.",
+        "simple_mode_input_label": "Describe the diagram you want to create",
+        "simple_mode_placeholder": "e.g., A pipeline diagram showing how a RAG system retrieves documents, re-ranks them, and generates answers",
+        "simple_mode_generate_button": "🤖 Generate Structured Input",
+        "simple_mode_spinner": "Generating structured method section and caption...",
+        "simple_mode_empty_error": "Please enter a description first!",
+
+        # Template mode (Phase 3)
+        "template_mode_caption": "Select a diagram template and fill in the fields. The method section and caption will be generated automatically.",
+        "template_mode_select_label": "Select Template",
+        "template_mode_apply_button": "📋 Apply Template",
+        "template_mode_empty_error": "Please fill in at least one field!",
     },
 
     "ko": {
@@ -238,5 +266,33 @@ TRANSLATIONS = {
 
         # Language selector
         "language_label": "🌐 언어",
+
+        # Diagram language selector (Phase 2)
+        "diagram_language_label": "다이어그램 텍스트 언어",
+        "diagram_language_help": "생성되는 다이어그램의 텍스트 라벨 언어입니다. 한국어 모드는 한글 라벨이 포함된 다이어그램을 생성합니다.",
+
+        # Example template selector (Phase 1)
+        "example_none": "없음",
+
+        # Input mode (Phase 3)
+        "input_mode_label": "입력 모드",
+        "input_mode_direct": "직접 입력",
+        "input_mode_simple": "간편 모드",
+        "input_mode_template": "템플릿 모드",
+        "input_mode_help": "직접 입력: 방법론 섹션과 캡션을 직접 작성합니다. 간편 모드: 간단히 설명하면 AI가 구조화된 텍스트를 생성합니다. 템플릿 모드: 구조화된 템플릿의 빈칸을 채웁니다.",
+
+        # Simple mode (Phase 3)
+        "simple_mode_caption": "다이어그램 아이디어를 간단히 설명하세요. AI가 구조화된 방법론 섹션과 캡션을 생성합니다.",
+        "simple_mode_input_label": "만들고 싶은 다이어그램을 설명하세요",
+        "simple_mode_placeholder": "예: RAG 시스템이 문서를 검색하고 재순위 지정한 후 답변을 생성하는 파이프라인 다이어그램",
+        "simple_mode_generate_button": "🤖 구조화된 입력 생성",
+        "simple_mode_spinner": "구조화된 방법론 섹션과 캡션 생성 중...",
+        "simple_mode_empty_error": "먼저 설명을 입력해주세요!",
+
+        # Template mode (Phase 3)
+        "template_mode_caption": "다이어그램 템플릿을 선택하고 필드를 채우세요. 방법론 섹션과 캡션이 자동으로 생성됩니다.",
+        "template_mode_select_label": "템플릿 선택",
+        "template_mode_apply_button": "📋 템플릿 적용",
+        "template_mode_empty_error": "최소 하나의 필드를 입력해주세요!",
     },
 }

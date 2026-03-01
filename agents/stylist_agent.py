@@ -70,8 +70,16 @@ class StylistAgent(BaseAgent):
         if isinstance(raw_content, (dict, list)):
             raw_content = json.dumps(raw_content)
         user_prompt += f"{cfg['context_labels'][0]}: {raw_content}\n"
-        user_prompt += f"{cfg['context_labels'][1]}: {data['visual_intent']}\nYour Output:"
-        
+        user_prompt += f"{cfg['context_labels'][1]}: {data['visual_intent']}\n"
+
+        # Inject Korean label preservation directive
+        diagram_language = data.get("diagram_language", "en")
+        if diagram_language == "ko":
+            user_prompt += ("**LANGUAGE NOTE:** Preserve all Korean text labels exactly. "
+                "Do not translate them to English.\n")
+
+        user_prompt += "Your Output:"
+
         content_list = [{"type": "text", "text": user_prompt}]
 
         # Generate response

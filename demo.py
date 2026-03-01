@@ -30,6 +30,7 @@ import os
 from datetime import datetime
 
 from translations import TRANSLATIONS
+from example_templates import EXAMPLE_TEMPLATES
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -110,7 +111,7 @@ def base64_to_image(b64_str):
     except Exception:
         return None
 
-def create_sample_inputs(method_content, caption, diagram_type="Pipeline", aspect_ratio="16:9", num_copies=10, max_critic_rounds=3):
+def create_sample_inputs(method_content, caption, diagram_type="Pipeline", aspect_ratio="16:9", num_copies=10, max_critic_rounds=3, diagram_language="en"):
     """Create multiple copies of the input data for parallel processing."""
     base_input = {
         "filename": "demo_input",
@@ -120,7 +121,8 @@ def create_sample_inputs(method_content, caption, diagram_type="Pipeline", aspec
         "additional_info": {
             "rounded_ratio": aspect_ratio
         },
-        "max_critic_rounds": max_critic_rounds  # Add critic rounds control
+        "max_critic_rounds": max_critic_rounds,
+        "diagram_language": diagram_language,
     }
     
     # Create num_copies identical inputs, each with a unique identifier
@@ -465,109 +467,127 @@ def main():
                 key="tab1_model_name",
                 help=t("model_name_help")
             )
+
+            diagram_language = st.selectbox(
+                t("diagram_language_label"),
+                ["English", "Korean (한국어)"],
+                index=0,
+                key="tab1_diagram_language",
+                help=t("diagram_language_help"),
+            )
+            diagram_lang_code = "ko" if "Korean" in diagram_language else "en"
         
         st.divider()
-        
+
         # Input section
         st.markdown(t("input_header"))
-        
-        # Example content
-        example_method = r"""## Methodology: The PaperVizAgent Framework
-        
-        In this section, we present the architecture of PaperVizAgent, a reference-driven agentic framework for automated academic illustration. As illustrated in Figure \ref{fig:methodology_diagram}, PaperVizAgent orchestrates a collaborative team of five specialized agents—Retriever, Planner, Stylist, Visualizer, and Critic—to transform raw scientific content into publication-quality diagrams and plots. (See Appendix \ref{app_sec:agent_prompts} for prompts)
 
-### Retriever Agent
+        # Input mode selection
+        input_mode = st.radio(
+            t("input_mode_label"),
+            [t("input_mode_direct"), t("input_mode_simple"), t("input_mode_template")],
+            index=0,
+            horizontal=True,
+            key="input_mode",
+            help=t("input_mode_help"),
+        )
 
-Given the source context $S$ and the communicative intent $C$, the Retriever Agent identifies $N$ most relevant examples $\mathcal{E} = \{E_n\}_{n=1}^{N} \subset \mathcal{R}$ from the fixed reference set $\mathcal{R}$ to guide the downstream agents. As defined in Section \ref{sec:task_formulation}, each example $E_i \in \mathcal{R}$ is a triplet $(S_i, C_i, I_i)$.
-To leverage the reasoning capabilities of VLMs, we adopt a generative retrieval approach where the VLM performs selection over candidate metadata:
-$$
-\mathcal{E} = \text{VLM}_{\text{Ret}} \left( S, C, \{ (S_i, C_i) \}_{E_i \in \mathcal{R}} \right)
-$$
-Specifically, the VLM is instructed to rank candidates by matching both research domain (e.g., Agent & Reasoning) and diagram type (e.g., pipeline, architecture), with visual structure being prioritized over topic similarity. By explicitly reasoned selection of reference illustrations $I_i$ whose corresponding contexts $(S_i, C_i)$ best match the current requirements, the Retriever provides a concrete foundation for both structural logic and visual style.
+        if input_mode == t("input_mode_simple"):
+            # ── Simple Mode ──
+            st.caption(t("simple_mode_caption"))
+            simple_desc = st.text_area(
+                t("simple_mode_input_label"),
+                height=100,
+                placeholder=t("simple_mode_placeholder"),
+                key="simple_desc_input",
+            )
+            if st.button(t("simple_mode_generate_button"), key="simple_gen_btn"):
+                if simple_desc.strip():
+                    with st.spinner(t("simple_mode_spinner")):
+                        from utils.smart_input import generate_smart_input
+                        lang = st.session_state.get("language", "en")
+                        result = asyncio.run(generate_smart_input(simple_desc, language=lang))
+                        st.session_state["method_content"] = result["method"]
+                        st.session_state["caption"] = result["caption"]
+                        st.rerun()
+                else:
+                    st.error(t("simple_mode_empty_error"))
 
-### Planner Agent
+        elif input_mode == t("input_mode_template"):
+            # ── Template Mode ──
+            from input_templates import INPUT_TEMPLATES
+            st.caption(t("template_mode_caption"))
+            template_names = list(INPUT_TEMPLATES.keys())
+            selected_template = st.selectbox(
+                t("template_mode_select_label"),
+                template_names,
+                key="template_selector",
+            )
+            tmpl = INPUT_TEMPLATES[selected_template]
+            lang = st.session_state.get("language", "en")
+            field_values = {}
+            for field in tmpl["fields"]:
+                label = field["label_ko"] if lang == "ko" else field["label"]
+                field_values[field["key"]] = st.text_input(
+                    label,
+                    placeholder=field.get("placeholder_ko", field.get("placeholder", "")) if lang == "ko" else field.get("placeholder", ""),
+                    key=f"tmpl_{field['key']}",
+                )
+            if st.button(t("template_mode_apply_button"), key="tmpl_apply_btn"):
+                filled = {k: v for k, v in field_values.items() if v.strip()}
+                if filled:
+                    method_text = tmpl["method_template"].format(**{k: field_values.get(k, "") for k in [f["key"] for f in tmpl["fields"]]})
+                    caption_text = tmpl["caption_template"].format(**{k: field_values.get(k, "") for k in [f["key"] for f in tmpl["fields"]]})
+                    st.session_state["method_content"] = method_text
+                    st.session_state["caption"] = caption_text
+                    st.rerun()
+                else:
+                    st.error(t("template_mode_empty_error"))
 
-The Planner Agent serves as the cognitive core of the system. It takes the source context $S$, communicative intent $C$, and retrieved examples $\mathcal{E}$ as inputs. By performing in-context learning from the demonstrations in $\mathcal{E}$, the Planner translates the unstructured or structured data in $S$ into a comprehensive and detailed textual description $P$ of the target illustration:
-$$
-P = \text{VLM}_{\text{plan}}(S, C, \{ (S_i, C_i, I_i) \}_{E_i \in \mathcal{E}})
-$$
+        # ── Direct Input (always shown — acts as the editable text areas) ──
+        # Example template names for the dropdown
+        example_names = [t("example_none")] + list(EXAMPLE_TEMPLATES.keys())
 
-### Stylist Agent
-
-To ensure the output adheres to the aesthetic standards of modern academic manuscripts, the Stylist Agent acts as a design consultant.
-A primary challenge lies in defining a comprehensive “academic style,” as manual definitions are often incomplete.
-To address this, the Stylist traverses the entire reference collection $\mathcal{R}$ to automatically synthesize an *Aesthetic Guideline* $\mathcal{G}$ covering key dimensions such as color palette, shapes and containers, lines and arrows, layout and composition, and typography and icons (see Appendix \ref{app_sec:auto_summarized_style_guide} for the summarized guideline and implementation details). Armed with this guideline, the Stylist refines each initial description $P$ into a stylistically optimized version $P^*$:
-$$
-P^* = \text{VLM}_{\text{style}}(P, \mathcal{G})
-$$
-This ensures that the final illustration is not only accurate but also visually professional.
-
-### Visualizer Agent
-
-After receiving the stylistically optimized description $P^*$, the Visualizer Agent collaborates with the Critic Agent to render academic illustrations and iteratively refine their quality. The Visualizer Agent leverages an image generation model to transform textual descriptions into visual output. In each iteration $t$, given a description $P_t$, the Visualizer generates:
-$$
-I_t = \text{Image-Gen}(P_t)
-$$
-where the initial description $P_0$ is set to $P^*$.
-
-### Critic Agent
-
-The Critic Agent forms a closed-loop refinement mechanism with the Visualizer by closely examining the generated image $I_t$ and providing refined description $P_{t+1}$ to the Visualizer. Upon receiving the generated image $I_t$ at iteration $t$, the Critic inspects it against the original source context $(S, C)$ to identify factual misalignments, visual glitches, or areas for improvement. It then provides targeted feedback and produces a refined description $P_{t+1}$ that addresses the identified issues:
-$$
-P_{t+1} = \text{VLM}_{\text{critic}}(I_t, S, C, P_t)
-$$
-This revised description is then fed back to the Visualizer for regeneration. The Visualizer-Critic loop iterates for $T=3$ rounds, with the final output being $I = I_T$. This iterative refinement process ensures that the final illustration meets the high standards required for academic dissemination.
-
-### Extension to Statistical Plots
-
-The framework extends to statistical plots by adjusting the Visualizer and Critic agents. For numerical precision, the Visualizer converts the description $P_t$ into executable Python Matplotlib code: $I_t = \text{VLM}_{\text{code}}(P_t)$. The Critic evaluates the rendered plot and generates a refined description $P_{t+1}$ addressing inaccuracies or imperfections: $P_{t+1} = \text{VLM}_{\text{critic}}(I_t, S, C, P_t)$. The same $T=3$ round iterative refinement process applies. While we prioritize this code-based approach for accuracy, we also explore direct image generation in Section \ref{sec:discussion}. See Appendix \ref{app_sec:plot_agent_prompt} for adjusted prompts."""
-
-        example_caption = "Figure 1: Overview of our PaperVizAgent framework. Given the source context and communicative intent, we first apply a Linear Planning Phase to retrieve relevant reference examples and synthesize a stylistically optimized description. We then use an Iterative Refinement Loop (consisting of Visualizer and Critic agents) to transform the description into visual output and conduct multi-round refinements to produce the final academic illustration."
-        
         col_input1, col_input2 = st.columns([3, 2])
-        
+
         with col_input1:
-            # Example selector for method content
             method_example = st.selectbox(
                 t("load_example_method"),
-                ["None", "PaperVizAgent Framework"],
-                key="method_example_selector"
+                example_names,
+                key="method_example_selector",
             )
-            
-            # Set value based on example selection or session state
-            if method_example == "PaperVizAgent Framework":
-                method_value = example_method
+
+            if method_example != t("example_none") and method_example in EXAMPLE_TEMPLATES:
+                method_value = EXAMPLE_TEMPLATES[method_example]["method"]
             else:
                 method_value = st.session_state.get("method_content", "")
-            
+
             method_content = st.text_area(
                 t("method_content_label"),
                 value=method_value,
                 height=250,
                 placeholder=t("method_content_placeholder"),
-                help=t("method_content_help")
+                help=t("method_content_help"),
             )
-        
+
         with col_input2:
-            # Example selector for caption
             caption_example = st.selectbox(
                 t("load_example_caption"),
-                ["None", "PaperVizAgent Framework"],
-                key="caption_example_selector"
+                example_names,
+                key="caption_example_selector",
             )
-            
-            # Set value based on example selection or session state
-            if caption_example == "PaperVizAgent Framework":
-                caption_value = example_caption
+
+            if caption_example != t("example_none") and caption_example in EXAMPLE_TEMPLATES:
+                caption_value = EXAMPLE_TEMPLATES[caption_example]["caption"]
             else:
                 caption_value = st.session_state.get("caption", "")
-            
+
             caption = st.text_area(
                 t("caption_label"),
                 value=caption_value,
                 height=250,
                 placeholder=t("caption_placeholder"),
-                help=t("caption_help")
+                help=t("caption_help"),
             )
         
         # Process button
@@ -586,7 +606,8 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
                         caption=caption,
                         aspect_ratio=aspect_ratio,
                         num_copies=num_candidates,
-                        max_critic_rounds=max_critic_rounds
+                        max_critic_rounds=max_critic_rounds,
+                        diagram_language=diagram_lang_code,
                     )
                     
                     # Process in parallel
