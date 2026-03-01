@@ -139,8 +139,20 @@ To help you understand the task better, and grasp the principles for generating 
 ** IMPORTANT: **
 Your description should be as detailed as possible. Semantically, clearly describe each element and their connections. Formally, include various details such as background style (typically pure white or very light pastel), colors, line thickness, icon styles, etc. Remember: vague or unclear specifications will only make the generated figure worse, not better.
 
+** TEXT LABELS: **
+Keep all text labels SHORT (under 15 characters per label when possible). Use standard abbreviations where appropriate. Spell out each critical label explicitly — AI image generators frequently garble long text. For example, prefer 'Encoder' over 'Encoder Module Component'.
+
+** ARROWS & CONNECTIONS: **
+Describe every connection explicitly: 'An arrow flows FROM [Source] TO [Target].' Never assume the model will infer connections. Specify the direction of every arrow. Use the format: 'Node A → Node B → Node C' for sequential flows.
+
+** LAYOUT & HIERARCHY: **
+Arrange elements in a clear LEFT-TO-RIGHT or TOP-TO-BOTTOM flow. The input/starting element should be on the far left (or top), the output/result on the far right (or bottom). Main pipeline boxes should be LARGER than auxiliary components. Ensure generous spacing — no element should overlap another.
+
 ** NO REDUNDANCY: **
-Each concept, term, or component must appear only ONCE in the diagram description. Do NOT repeat the same information in multiple places (e.g., do not describe "overfitting" in a label, then again in a separate annotation, then again in a legend). Consolidate related information into a single, clear visual element. A good diagram is concise — it communicates through visual structure, not repeated text.
+Each concept, term, or component must appear only ONCE. Do NOT repeat the same information in multiple places (e.g., do not describe "overfitting" in a label, then again in a separate annotation, then again in a legend). Consolidate into a single, clear visual element.
+
+** NO HALLUCINATION: **
+Draw ONLY the components explicitly mentioned in the Method Section. Do NOT invent modules, connections, or labels not described in the source text. If unsure about a component, omit it rather than guess.
 """
 
 PLOT_PLANNER_AGENT_SYSTEM_PROMPT = """

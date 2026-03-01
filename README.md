@@ -2,6 +2,25 @@
 
 ## 업데이트 및 개선 사항 (원본 PaperVizAgent 소스 대비)
 
+### 2026-03-02: 에이전트 프롬프트 전면 개선 및 Refine 베이스라인 품질 보장
+
+**Planner 프롬프트 강화** (AI 이미지 생성 모델의 빈발 오류 대응)
+- `TEXT LABELS`: 라벨 15자 이내 권장, 긴 텍스트 garbling 방지
+- `ARROWS & CONNECTIONS`: 모든 연결을 "FROM [A] TO [B]" 형식으로 명시적 기술
+- `LAYOUT & HIERARCHY`: 좌→우/상→하 읽기 순서, 주요 요소 크기 차별화, 요소 간 충분한 간격
+- `NO HALLUCINATION`: 원본 방법론에 없는 모듈/연결 생성 금지
+
+**Critic 프롬프트 강화** (시각적 결함 검사 체계화)
+- `Hallucinated Elements`: 원본 대비 추가/누락 요소 교차 검증
+- `Text Overlap`: 텍스트-텍스트, 텍스트-화살표 겹침 검사
+- `Arrows & Connections`: 화살표 끊김, 역방향, 과도한 교차 검사
+- `Visual Hierarchy`: 읽기 순서 및 크기 계층 검증
+- `Color & Contrast`: 어두운 배경, 저대비 텍스트, 네온 색상 플래그
+
+**Refine 베이스라인 품질 프롬프트**
+- 모든 편집 요청에 9가지 품질 규칙 자동 삽입 (텍스트 정확성, 화살표 연결, 배경색, 대비, 요소 보존 등)
+- 사용자 지침은 `USER INSTRUCTIONS:` 섹션으로 분리하여 기본 규칙과 병합
+
 ### 2026-03-02: Refine Image 개선 및 다이어그램 품질 향상
 
 **Refine Image 탭**

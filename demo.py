@@ -195,9 +195,26 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
 
         client = genai.Client(api_key=api_key)
 
+        # Prepend baseline quality guardrails to every edit prompt
+        baseline_prefix = (
+            "BASELINE QUALITY RULES (always apply):\n"
+            "- Re-render ALL text labels to be crisp, correctly spelled, and fully legible. "
+            "Fix any misspellings or garbled characters.\n"
+            "- Ensure no text is cut off at image boundaries.\n"
+            "- Ensure no text overlaps with any other element.\n"
+            "- Every arrow must clearly connect FROM a source TO a destination. No arrow should end in empty space.\n"
+            "- Use a WHITE or very light background suitable for academic publication.\n"
+            "- Ensure all text has high contrast against its background.\n"
+            "- Do NOT add any new modules, labels, or connections not present in the original.\n"
+            "- Do NOT remove any existing content elements.\n"
+            "- Do NOT render figure captions or titles inside the image.\n\n"
+            "USER INSTRUCTIONS:\n"
+        )
+        full_prompt = baseline_prefix + edit_prompt
+
         # Prepare content
         contents = [
-            types.Part.from_text(text=edit_prompt),
+            types.Part.from_text(text=full_prompt),
             types.Part.from_bytes(
                 mime_type="image/jpeg",
                 data=image_bytes

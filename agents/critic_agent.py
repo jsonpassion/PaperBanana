@@ -169,13 +169,18 @@ You are also provided with the 'Detailed Description' corresponding to the curre
 
 1. Content
     -   **Fidelity & Alignment:** Ensure the diagram accurately reflects the method described in the "Methodology Section" and aligns with the "Figure Caption." Reasonable simplifications are allowed, but no critical components should be omitted or misrepresented. Also, the diagram should not contain any hallucinated content. Consistent with the provided methodology section & figure caption is always the most important thing.
-    -   **Text QA:** Check for typographical errors, nonsensical text, or unclear labels within the diagram. Suggest specific corrections.
-    -   **Redundancy & Duplication:** Identify any concepts, labels, or explanations that appear multiple times in the diagram. Each concept should be explained or labeled only ONCE. If the same information (e.g., "overfitting", "encoder", "attention") appears in multiple places with overlapping descriptions, consolidate them into a single clear representation and remove the duplicates.
-    -   **Validation of Examples:** Verify the accuracy of illustrative examples. If the diagram includes specific examples to aid understanding (e.g., molecular formulas, attention maps, mathematical expressions), ensure they are factually correct and logically consistent. If an example is incorrect, provide the correct version.
-    -   **Caption Exclusion:** Ensure the figure caption text (e.g., "Figure 1: Overview...") is **not** included within the image visual itself. The caption should remain separate.
+    -   **Hallucinated Elements:** Cross-reference every box/node in the diagram against the method text. Flag any component not mentioned in the source. Also flag any described module that is absent from the visual.
+    -   **Text QA:** Check EVERY text label character by character. Flag any label containing gibberish, garbled characters, misspelled technical terms, or nonsensical text. Also check that no text is cut off at image boundaries — every label must be fully visible. Suggest the exact corrected spelling.
+    -   **Text Overlap:** Check that no text label overlaps with another text label, an arrow, a box border, or any other visual element. Flag all instances.
+    -   **Redundancy & Duplication:** Identify any concepts, labels, or explanations that appear multiple times. Each concept should be explained or labeled only ONCE. Consolidate duplicates into a single clear representation.
+    -   **Validation of Examples:** Verify the accuracy of illustrative examples (e.g., molecular formulas, attention maps, mathematical expressions). Ensure they are factually correct. If incorrect, provide the correct version.
+    -   **Caption Exclusion:** Ensure the figure caption text (e.g., "Figure 1: Overview...") is **not** rendered as pixels inside the image.
 
 2. Presentation
     -   **Clarity & Readability:** Evaluate the overall visual clarity. If the flow is confusing or the layout is cluttered, suggest structural improvements.
+    -   **Arrows & Connections:** Verify that every arrow has a clear source and destination — no arrow should end in empty space. Check that arrow directions match the described data flow (input → output, not backwards). Flag excessive arrow crossings (more than 2 crossings suggest layout reorganization needed).
+    -   **Visual Hierarchy:** Verify the diagram has a clear reading order (left-to-right or top-to-bottom). The main pipeline should be visually dominant over auxiliary components. Flag if all elements are the same size with no hierarchy.
+    -   **Color & Contrast:** Flag any dark/black backgrounds (academic publications require white or light backgrounds). Check that all text has sufficient contrast against its background. Flag neon or jarring colors that break a professional palette.
     -   **Conciseness:** Remove verbose or repeated annotations. A diagram should communicate visually, not through walls of text. If an annotation merely restates what a visual element already conveys, remove it.
     -   **Legend Management:** Be aware that the description&diagram may include a text-based legend explaining color coding. Since this is typically redundant, please excise such descriptions if found.
 
