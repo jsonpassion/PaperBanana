@@ -76,11 +76,13 @@ async def generate_smart_input(brief_description: str, language: str = "en") -> 
             candidate_count=1,
             max_output_tokens=8192,
         ),
-        max_attempts=3,
-        retry_delay=5,
+        max_attempts=5,
+        retry_delay=10,
     )
 
     raw = response_list[0] if response_list else ""
+    if raw == "Error" or not raw.strip():
+        raise RuntimeError("API call failed after all retries. The model may be temporarily unavailable.")
     return _parse_smart_input_response(raw)
 
 

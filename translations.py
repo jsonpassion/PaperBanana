@@ -149,6 +149,7 @@ TRANSLATIONS = {
         "simple_mode_generate_button": "🤖 Generate Structured Input",
         "simple_mode_spinner": "Generating structured method section and caption...",
         "simple_mode_empty_error": "Please enter a description first!",
+        "simple_mode_api_error": "Failed to generate structured input. The model may be temporarily unavailable. Please try again later. ({error})",
 
         # Template mode (Phase 3)
         "template_mode_caption": "Select a diagram template and fill in the fields. The method section and caption will be generated automatically.",
@@ -288,6 +289,7 @@ TRANSLATIONS = {
         "simple_mode_generate_button": "🤖 구조화된 입력 생성",
         "simple_mode_spinner": "구조화된 방법론 섹션과 캡션 생성 중...",
         "simple_mode_empty_error": "먼저 설명을 입력해주세요!",
+        "simple_mode_api_error": "구조화된 입력 생성에 실패했습니다. 모델이 일시적으로 사용 불가능할 수 있습니다. 잠시 후 다시 시도해주세요. ({error})",
 
         # Template mode (Phase 3)
         "template_mode_caption": "다이어그램 템플릿을 선택하고 필드를 채우세요. 방법론 섹션과 캡션이 자동으로 생성됩니다.",

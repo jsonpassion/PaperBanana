@@ -504,12 +504,15 @@ def main():
             if st.button(t("simple_mode_generate_button"), key="simple_gen_btn"):
                 if simple_desc.strip():
                     with st.spinner(t("simple_mode_spinner")):
-                        from utils.smart_input import generate_smart_input
-                        lang = st.session_state.get("language", "en")
-                        result = asyncio.run(generate_smart_input(simple_desc, language=lang))
-                        st.session_state["method_content"] = result["method"]
-                        st.session_state["caption"] = result["caption"]
-                        st.rerun()
+                        try:
+                            from utils.smart_input import generate_smart_input
+                            lang = st.session_state.get("language", "en")
+                            result = asyncio.run(generate_smart_input(simple_desc, language=lang))
+                            st.session_state["method_content"] = result["method"]
+                            st.session_state["caption"] = result["caption"]
+                            st.rerun()
+                        except Exception as e:
+                            st.error(t("simple_mode_api_error", error=e))
                 else:
                     st.error(t("simple_mode_empty_error"))
 
