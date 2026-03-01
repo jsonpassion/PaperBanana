@@ -2,6 +2,21 @@
 
 ## 업데이트 및 개선 사항 (원본 PaperVizAgent 소스 대비)
 
+### 2026-03-02: Refine Image 개선 및 다이어그램 품질 향상
+
+**Refine Image 탭**
+- Vertex AI 인증 → API Key 방식으로 전환 (ADC 미설정 에러 해결)
+- 빠른 편집 프리셋 드롭다운 추가 (6종: 해상도만 높이기, 텍스트 오류 수정, 학술 스타일 적용, 텍스트 크게/굵게, 간결하게 정리, 흰색 배경)
+- 프리셋 + 사용자 추가 지침 합산 구조 (택1이 아닌 병합)
+
+**다이어그램 품질**
+- Planner 프롬프트에 `NO REDUNDANCY` 규칙 추가 (개념/용어 1회만 표현)
+- Critic 프롬프트에 `Redundancy & Duplication` 검사 + `Conciseness` 규칙 추가
+
+**텍스트 정리**
+- 중복/의미 변질된 번역 키 개선 (`method_content_help`, `caption_help`, `refine_caption`, `edit_prompt_help`, `file_uploader_help`)
+- Smart Input 에러 핸들링 강화 (재시도 증가, API 실패 시 사용자 친화적 메시지)
+
 ### 2026-03-02: 기능 확장 (Phase 1-3)
 
 **Phase 1: 예제 템플릿 확장**
