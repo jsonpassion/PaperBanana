@@ -811,17 +811,24 @@ def main():
                 )
                 preset_value = preset_options[selected_preset]
 
-                edit_prompt = st.text_area(
-                    t("edit_prompt_label"),
-                    value=preset_value,
-                    height=200,
-                    placeholder=t("edit_prompt_placeholder"),
-                    help=t("edit_prompt_help"),
-                    key="edit_prompt"
+                # Show selected preset as a chip
+                if preset_value:
+                    st.info(f"**{selected_preset}**: {preset_value[:80]}...")
+
+                additional_prompt = st.text_area(
+                    t("additional_prompt_label"),
+                    height=120,
+                    placeholder=t("additional_prompt_placeholder"),
+                    help=t("additional_prompt_help"),
+                    key="additional_edit_prompt"
                 )
 
+                # Combine: preset + user additional text
+                parts = [p for p in [preset_value, additional_prompt.strip()] if p]
+                final_prompt = "\n\n".join(parts)
+
                 if st.button(t("refine_button"), type="primary", use_container_width=True):
-                    if not edit_prompt:
+                    if not final_prompt:
                         st.error(t("error_no_edit_prompt"))
                     else:
                         with st.spinner(t("spinner_refining", resolution=refine_resolution)):
@@ -830,12 +837,12 @@ def main():
                                 img_byte_arr = BytesIO()
                                 uploaded_image.save(img_byte_arr, format='JPEG')
                                 image_bytes = img_byte_arr.getvalue()
-                                
+
                                 # Call nanoviz API
                                 refined_bytes, message = asyncio.run(
                                     refine_image_with_nanoviz(
                                         image_bytes=image_bytes,
-                                        edit_prompt=edit_prompt,
+                                        edit_prompt=final_prompt,
                                         aspect_ratio=refine_aspect_ratio,
                                         image_size=refine_resolution
                                     )
