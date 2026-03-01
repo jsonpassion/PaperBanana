@@ -172,27 +172,29 @@ async def process_parallel_candidates(data_list, exp_mode="dev_planner_critic", 
 
 async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9", image_size="2K"):
     """
-    Refine an image using an Image Editing API.
-    
+    Refine an image using Gemini's image editing capability.
+    Uses API Key authentication (same as the generation pipeline).
+
     Args:
         image_bytes: Image data in bytes
         edit_prompt: Text description of desired changes
         aspect_ratio: Output aspect ratio (21:9, 16:9, 3:2)
         image_size: Output resolution (2K or 4K)
-    
+
     Returns:
         Tuple of (edited_image_bytes, success_message)
     """
     try:
         from google import genai
         from google.genai import types
-        
-        # Initialize client
-        project_id = get_config_val("google_cloud", "project_id", "GOOGLE_CLOUD_PROJECT", "")
-        location = get_config_val("google_cloud", "location", "GOOGLE_CLOUD_LOCATION", "global")
-        
-        client = genai.Client(vertexai=True, project=project_id, location=location)
-        
+
+        # Initialize client with API Key (same as generation pipeline)
+        api_key = get_config_val("api_keys", "google_api_key", "GOOGLE_API_KEY", "")
+        if not api_key:
+            return None, "Google API Key not configured. Set it in configs/model_config.yaml or GOOGLE_API_KEY env var."
+
+        client = genai.Client(api_key=api_key)
+
         # Prepare content
         contents = [
             types.Part.from_text(text=edit_prompt),
@@ -201,7 +203,7 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
                 data=image_bytes
             )
         ]
-        
+
         # Configure generation
         config = types.GenerateContentConfig(
             temperature=1.0,
@@ -212,7 +214,7 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
                 image_size=image_size,
             ),
         )
-        
+
         # Generate refined image
         image_model = get_config_val("defaults", "image_model_name", "IMAGE_MODEL_NAME", "")
         response = await asyncio.to_thread(
@@ -221,22 +223,22 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
             contents=contents,
             config=config
         )
-        
+
         # Extract image from response
         if response.candidates and response.candidates[0].content.parts:
             for part in response.candidates[0].content.parts:
                 if hasattr(part, 'inline_data') and part.inline_data:
                     edited_image_data = part.inline_data.data
-                    
+
                     if isinstance(edited_image_data, bytes):
                         return edited_image_data, "✅ Image refined successfully!"
                     elif isinstance(edited_image_data, str):
                         return base64.b64decode(edited_image_data), "✅ Image refined successfully!"
-        
-        return None, "❌ No image data found in response"
-    
+
+        return None, "No image data found in response"
+
     except Exception as e:
-        return None, f"❌ Error: {str(e)}"
+        return None, f"Error: {str(e)}"
 
 
 def get_evolution_stages(result, exp_mode):
