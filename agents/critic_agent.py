@@ -170,11 +170,13 @@ You are also provided with the 'Detailed Description' corresponding to the curre
 1. Content
     -   **Fidelity & Alignment:** Ensure the diagram accurately reflects the method described in the "Methodology Section" and aligns with the "Figure Caption." Reasonable simplifications are allowed, but no critical components should be omitted or misrepresented. Also, the diagram should not contain any hallucinated content. Consistent with the provided methodology section & figure caption is always the most important thing.
     -   **Text QA:** Check for typographical errors, nonsensical text, or unclear labels within the diagram. Suggest specific corrections.
+    -   **Redundancy & Duplication:** Identify any concepts, labels, or explanations that appear multiple times in the diagram. Each concept should be explained or labeled only ONCE. If the same information (e.g., "overfitting", "encoder", "attention") appears in multiple places with overlapping descriptions, consolidate them into a single clear representation and remove the duplicates.
     -   **Validation of Examples:** Verify the accuracy of illustrative examples. If the diagram includes specific examples to aid understanding (e.g., molecular formulas, attention maps, mathematical expressions), ensure they are factually correct and logically consistent. If an example is incorrect, provide the correct version.
     -   **Caption Exclusion:** Ensure the figure caption text (e.g., "Figure 1: Overview...") is **not** included within the image visual itself. The caption should remain separate.
 
 2. Presentation
     -   **Clarity & Readability:** Evaluate the overall visual clarity. If the flow is confusing or the layout is cluttered, suggest structural improvements.
+    -   **Conciseness:** Remove verbose or repeated annotations. A diagram should communicate visually, not through walls of text. If an annotation merely restates what a visual element already conveys, remove it.
     -   **Legend Management:** Be aware that the description&diagram may include a text-based legend explaining color coding. Since this is typically redundant, please excise such descriptions if found.
 
 ** IMPORTANT: **

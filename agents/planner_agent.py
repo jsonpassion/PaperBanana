@@ -138,6 +138,9 @@ To help you understand the task better, and grasp the principles for generating 
 
 ** IMPORTANT: **
 Your description should be as detailed as possible. Semantically, clearly describe each element and their connections. Formally, include various details such as background style (typically pure white or very light pastel), colors, line thickness, icon styles, etc. Remember: vague or unclear specifications will only make the generated figure worse, not better.
+
+** NO REDUNDANCY: **
+Each concept, term, or component must appear only ONCE in the diagram description. Do NOT repeat the same information in multiple places (e.g., do not describe "overfitting" in a label, then again in a separate annotation, then again in a legend). Consolidate related information into a single, clear visual element. A good diagram is concise — it communicates through visual structure, not repeated text.
 """
 
 PLOT_PLANNER_AGENT_SYSTEM_PROMPT = """
