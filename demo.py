@@ -469,6 +469,17 @@ def main():
 
     st.caption(t("app_subtitle"))
 
+    _rec = t("recommended_tag")  # (추천) / (Recommended)
+
+    def _clean_selectbox_value(val, valid_options, default_idx=0):
+        """Strip recommendation tag from selectbox value on language switch."""
+        if val in valid_options:
+            return val
+        for opt in valid_options:
+            if val and val.startswith(opt):
+                return opt
+        return valid_options[default_idx]
+
     # Create tabs
     tab1, tab2 = st.tabs([t("tab_generate"), t("tab_refine")])
 
@@ -479,18 +490,6 @@ def main():
         # Sidebar configuration for Tab 1
         with st.sidebar:
             st.title(t("sidebar_generation_title"))
-
-            _rec = t("recommended_tag")  # (추천) / (Recommended)
-
-            def _clean_selectbox_value(val, valid_options, default_idx=0):
-                """Strip recommendation tag from selectbox value on language switch."""
-                if val in valid_options:
-                    return val
-                # format_func appended _rec — try stripping known suffixes
-                for opt in valid_options:
-                    if val and val.startswith(opt):
-                        return opt
-                return valid_options[default_idx]
 
             exp_mode_options = ["demo_planner_critic", "demo_full"]
             exp_mode = st.selectbox(
@@ -870,21 +869,27 @@ def main():
         with st.sidebar:
             st.title(t("sidebar_refine_title"))
 
+            refine_res_options = ["2K", "4K"]
             refine_resolution = st.selectbox(
                 t("target_resolution_label"),
-                ["2K", "4K"],
+                refine_res_options,
                 index=0,
                 key="refine_resolution",
+                format_func=lambda x: f"{x} {_rec}" if x == refine_res_options[0] else x,
                 help=t("target_resolution_help")
             )
+            refine_resolution = _clean_selectbox_value(refine_resolution, refine_res_options)
 
+            refine_ar_options = ["16:9", "21:9", "3:2"]
             refine_aspect_ratio = st.selectbox(
                 t("aspect_ratio_label"),
-                ["21:9", "16:9", "3:2"],
+                refine_ar_options,
                 index=0,
                 key="refine_aspect_ratio",
+                format_func=lambda x: f"{x} {_rec}" if x == refine_ar_options[0] else x,
                 help=t("refine_aspect_ratio_help")
             )
+            refine_aspect_ratio = _clean_selectbox_value(refine_aspect_ratio, refine_ar_options)
         
         st.divider()
         
