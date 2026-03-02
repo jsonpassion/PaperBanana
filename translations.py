@@ -85,6 +85,8 @@ TRANSLATIONS = {
         # Refine progress
         "refine_progress_title": "Refining image...",
         "refine_step_prepare": "📐 Preparing image and edit instructions...",
+        "refine_step_analyze": "🔍 Analyzing image with vision model ({model})...",
+        "refine_step_analyze_done": "✅ Analysis complete — {n} corrections identified",
         "refine_step_api": "🎨 Sending to image model ({model})...",
         "refine_step_waiting": "⏳ Generating refined image — this may take about a minute...",
         "refine_step_processing": "🔄 Processing response...",
@@ -299,6 +301,8 @@ TRANSLATIONS = {
         # Refine progress
         "refine_progress_title": "이미지 개선 중...",
         "refine_step_prepare": "📐 이미지 및 편집 지침 준비 중...",
+        "refine_step_analyze": "🔍 비전 모델로 이미지 분석 중 ({model})...",
+        "refine_step_analyze_done": "✅ 분석 완료 — {n}건 교정사항 식별",
         "refine_step_api": "🎨 이미지 모델에 전송 중 ({model})...",
         "refine_step_waiting": "⏳ 개선 이미지 생성 중 — 약 1분 소요될 수 있습니다...",
         "refine_step_processing": "🔄 응답 처리 중...",

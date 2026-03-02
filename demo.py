@@ -209,10 +209,75 @@ async def process_parallel_candidates(data_list, exp_mode="dev_planner_critic", 
 
     return results
 
+async def _analyze_image_for_corrections(client, image_bytes, edit_prompt, model_name, _report):
+    """
+    Phase 1: Use a vision-language model to analyze the image and produce
+    specific, actionable correction instructions for the image model.
+    Works with any type of diagram/image — no domain assumption.
+    """
+    from google.genai import types
+
+    _report("analyze", model=model_name)
+
+    analysis_prompt = (
+        "You are an image quality analyst. Examine this image carefully and produce "
+        "a concise list of specific corrections the image editor should make.\n\n"
+        "ANALYZE:\n"
+        "1. Read ALL text in the image. For each text element, check:\n"
+        "   - Is it meaningful in context, or is it garbled/nonsensical/gibberish?\n"
+        "   - Is it duplicated where it shouldn't be?\n"
+        "   - Is it a correct label for what it's pointing to?\n"
+        "2. Check arrows/connectors — do they connect logically?\n"
+        "3. Check for any visual issues (overlapping elements, clipped text, etc.)\n\n"
+        "USER'S EDIT REQUEST:\n"
+        f"{edit_prompt}\n\n"
+        "OUTPUT FORMAT — respond with ONLY a numbered list of specific corrections. "
+        "Be extremely concrete. Example:\n"
+        '1. Replace "태승 대타" (bottom of center chart, x-axis) with "Underfitting / Overfitting"\n'
+        '2. The label "오차" appears twice in the center chart — keep the y-axis one, '
+        'change the in-graph one to "Error Region"\n'
+        '3. Arrow from box A to box B has no arrowhead — add one\n\n'
+        "If the image looks correct and needs no text/logic fixes, just output: "
+        '"NO CORRECTIONS NEEDED"\n'
+        "Keep the list SHORT (max 10 items). Only list real problems."
+    )
+
+    contents = [
+        types.Part.from_text(text=analysis_prompt),
+        types.Part.from_bytes(mime_type="image/jpeg", data=image_bytes),
+    ]
+
+    config = types.GenerateContentConfig(
+        temperature=0.2,
+        max_output_tokens=2048,
+    )
+
+    response = await asyncio.to_thread(
+        client.models.generate_content,
+        model=model_name,
+        contents=contents,
+        config=config,
+    )
+
+    analysis_text = ""
+    if response.candidates and response.candidates[0].content.parts:
+        analysis_text = response.candidates[0].content.parts[0].text or ""
+
+    # Count corrections
+    lines = [l.strip() for l in analysis_text.strip().split("\n") if l.strip()]
+    n_corrections = 0 if "NO CORRECTIONS NEEDED" in analysis_text.upper() else len(
+        [l for l in lines if l and l[0].isdigit()]
+    )
+    _report("analyze_done", n=n_corrections)
+
+    return analysis_text, n_corrections
+
+
 async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9", image_size="2K", progress_callback=None):
     """
-    Refine an image using Gemini's image editing capability.
-    Uses API Key authentication (same as the generation pipeline).
+    Two-phase refinement pipeline:
+      Phase 1: Vision model analyzes the image → produces specific correction list
+      Phase 2: Image model applies corrections + user edit instructions
 
     Args:
         image_bytes: Image data in bytes
@@ -234,38 +299,43 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
 
         _report("prepare")
 
-        # Initialize client with API Key (same as generation pipeline)
         api_key = get_config_val("api_keys", "google_api_key", "GOOGLE_API_KEY", "")
         if not api_key:
             return None, "Google API Key not configured. Set it in configs/model_config.yaml or GOOGLE_API_KEY env var."
 
         client = genai.Client(api_key=api_key)
 
-        # Prepend concise baseline quality guardrails
-        baseline_prefix = (
-            "Refine this scientific diagram. Keep the same layout and structure.\n\n"
-            "RULES:\n"
-            "- Make ALL text razor-sharp and legible. Fix any garbled or nonsensical text "
-            "by replacing it with the correct term for that context.\n"
-            "- Fix duplicate labels — each label must be unique and accurate for its position.\n"
-            "- Arrows must connect clearly from source to destination. No loose endpoints.\n"
-            "- Text must not overflow its containing box or overlap other elements.\n"
-            "- Do NOT add new components that aren't in the original.\n"
-            "- Do NOT add figure captions or titles.\n\n"
-            "EDIT INSTRUCTIONS:\n"
+        # ── Phase 1: Analyze image with vision model ──
+        analysis_model = get_config_val("defaults", "model_name", "MODEL_NAME", "")
+        analysis_text, n_corrections = await _analyze_image_for_corrections(
+            client, image_bytes, edit_prompt, analysis_model, _report
         )
-        full_prompt = baseline_prefix + edit_prompt
 
-        # Prepare content
-        contents = [
-            types.Part.from_text(text=full_prompt),
-            types.Part.from_bytes(
-                mime_type="image/jpeg",
-                data=image_bytes
-            )
+        # ── Phase 2: Apply corrections with image model ──
+        # Build prompt: baseline + analysis corrections + user instructions
+        parts = [
+            "Refine this image. Keep the same layout and structure.\n",
+            "RULES:\n"
+            "- Make ALL text razor-sharp and legible.\n"
+            "- Arrows must connect clearly from source to destination.\n"
+            "- Text must not overflow its containing box.\n"
+            "- Do NOT add new components. Do NOT add figure captions.\n",
         ]
 
-        # Configure generation
+        if n_corrections > 0:
+            parts.append(
+                f"\nSPECIFIC CORRECTIONS (from image analysis):\n{analysis_text}\n"
+            )
+
+        parts.append(f"\nUSER EDIT INSTRUCTIONS:\n{edit_prompt}")
+
+        full_prompt = "\n".join(parts)
+
+        contents = [
+            types.Part.from_text(text=full_prompt),
+            types.Part.from_bytes(mime_type="image/jpeg", data=image_bytes),
+        ]
+
         config = types.GenerateContentConfig(
             temperature=1.0,
             max_output_tokens=8192,
@@ -276,7 +346,6 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
             ),
         )
 
-        # Generate refined image
         image_model = get_config_val("defaults", "image_model_name", "IMAGE_MODEL_NAME", "")
         _report("api_call", model=image_model)
         _report("waiting")
@@ -285,7 +354,7 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
             client.models.generate_content,
             model=image_model,
             contents=contents,
-            config=config
+            config=config,
         )
 
         _report("processing")
@@ -295,7 +364,6 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
             for part in response.candidates[0].content.parts:
                 if hasattr(part, 'inline_data') and part.inline_data:
                     edited_image_data = part.inline_data.data
-
                     if isinstance(edited_image_data, bytes):
                         return edited_image_data, "✅ Image refined successfully!"
                     elif isinstance(edited_image_data, str):
@@ -1004,6 +1072,10 @@ def main():
                         def on_refine_progress(step, info):
                             if step == "prepare":
                                 log_container.write(t("refine_step_prepare"))
+                            elif step == "analyze":
+                                log_container.write(t("refine_step_analyze", model=info.get("model", "")))
+                            elif step == "analyze_done":
+                                log_container.write(t("refine_step_analyze_done", n=info.get("n", 0)))
                             elif step == "api_call":
                                 log_container.write(t("refine_step_api", model=info.get("model", "")))
                             elif step == "waiting":
