@@ -993,7 +993,8 @@ def main():
                     height=120,
                     placeholder=t("additional_prompt_placeholder"),
                     help=t("additional_prompt_help"),
-                    key="additional_edit_prompt"
+                    key="additional_edit_prompt",
+                    disabled=_busy,
                 )
 
                 # Combine: base quality rules + selected presets + user additional text
