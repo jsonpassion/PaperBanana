@@ -173,10 +173,15 @@ class PaperVizProcessor:
         data_list: List[Dict[str, Any]],
         max_concurrent: int = 50,
         do_eval: bool = True,
+        progress_callback=None,
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Batch process queries with concurrency support.
         Retriever is called once and results are shared across all candidates.
+
+        Args:
+            progress_callback: Optional callable(event: str, info: dict) for progress reporting.
+                Events: "retriever_start", "retriever_done", "candidate_done"
         """
         # Run retriever ONCE on the first item, then share results with all candidates
         exp_mode = self.exp_config.exp_mode
@@ -184,6 +189,8 @@ class PaperVizProcessor:
         needs_retrieval = exp_mode not in ["vanilla", "dev_polish"]
 
         if needs_retrieval and data_list:
+            if progress_callback:
+                progress_callback("retriever_start", {})
             print("[Optimizer] Running Retriever once and sharing results across all candidates...")
             first_data = data_list[0]
             first_data = await self.retriever_agent.process(first_data, retrieval_setting=retrieval_setting)
@@ -194,6 +201,8 @@ class PaperVizProcessor:
                 data["top10_references"] = cached_refs
                 data["retrieved_examples"] = cached_examples
                 data["_retriever_done"] = True
+            if progress_callback:
+                progress_callback("retriever_done", {"refs_count": len(cached_refs)})
 
         semaphore = asyncio.Semaphore(max_concurrent)
         async def process_with_semaphore(doc):
@@ -214,6 +223,11 @@ class PaperVizProcessor:
             for future in asyncio.as_completed(tasks):
                 result_data = await future
                 all_result_list.append(result_data)
+                if progress_callback:
+                    progress_callback("candidate_done", {
+                        "completed": len(all_result_list),
+                        "total": len(tasks),
+                    })
                 postfix_dict = {}
 
                 for dim in eval_dims:

@@ -78,8 +78,8 @@ SUPPORTED_LANGUAGES = {"English": "en", "한국어": "ko"}
 
 def t(key, **kwargs):
     """Return the translated string for the current language."""
-    lang = st.session_state.get("language", "en")
-    text = TRANSLATIONS.get(lang, TRANSLATIONS["en"]).get(key, TRANSLATIONS["en"].get(key, key))
+    lang = st.session_state.get("language", "ko")
+    text = TRANSLATIONS.get(lang, TRANSLATIONS["ko"]).get(key, TRANSLATIONS["en"].get(key, key))
     if kwargs:
         text = text.format(**kwargs)
     return text
@@ -135,7 +135,7 @@ def create_sample_inputs(method_content, caption, diagram_type="Pipeline", aspec
     
     return inputs
 
-async def process_parallel_candidates(data_list, exp_mode="dev_planner_critic", retrieval_setting="auto", model_name=""):
+async def process_parallel_candidates(data_list, exp_mode="dev_planner_critic", retrieval_setting="auto", model_name="", progress_callback=None):
     """Process multiple candidates in parallel using PaperVizProcessor."""
     # Create experiment config
     exp_config = config.ExpConfig(
@@ -146,7 +146,7 @@ async def process_parallel_candidates(data_list, exp_mode="dev_planner_critic", 
         model_name=model_name,
         work_dir=Path(__file__).parent,
     )
-    
+
     # Initialize processor with all agents
     processor = PaperVizProcessor(
         exp_config=exp_config,
@@ -158,16 +158,17 @@ async def process_parallel_candidates(data_list, exp_mode="dev_planner_critic", 
         retriever_agent=RetrieverAgent(exp_config=exp_config),
         polish_agent=PolishAgent(exp_config=exp_config),
     )
-    
+
     # Process all candidates in parallel (concurrency controlled by processor)
     results = []
-    concurrent_num = 10  # Process all 10 in parallel
-    
+    concurrent_num = 10
+
     async for result_data in processor.process_queries_batch(
-        data_list, max_concurrent=concurrent_num, do_eval=False
+        data_list, max_concurrent=concurrent_num, do_eval=False,
+        progress_callback=progress_callback,
     ):
         results.append(result_data)
-    
+
     return results
 
 async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9", image_size="2K"):
@@ -411,7 +412,7 @@ def main():
             lang_display = st.radio(
                 t("language_label"),
                 list(SUPPORTED_LANGUAGES.keys()),
-                index=list(SUPPORTED_LANGUAGES.values()).index(st.session_state.get("language", "en")),
+                index=list(SUPPORTED_LANGUAGES.values()).index(st.session_state.get("language", "ko")),
                 key="lang_selector",
             )
             st.session_state["language"] = SUPPORTED_LANGUAGES[lang_display]
@@ -477,7 +478,7 @@ def main():
             )
 
             default_model = get_config_val("defaults", "model_name", "MODEL_NAME", "YOUR_MODEL_NAME_HERE")
-            options = ["", default_model] if default_model else ["", "YOUR_MODEL_NAME_HERE"]
+            options = [default_model] if default_model else ["YOUR_MODEL_NAME_HERE"]
 
             model_name = st.selectbox(
                 t("model_name_label"),
@@ -621,24 +622,39 @@ def main():
                 st.session_state["method_content"] = method_content
                 st.session_state["caption"] = caption
                 
-                with st.spinner(t("spinner_generating", n=num_candidates)):
-                    # Create input data list
-                    input_data_list = create_sample_inputs(
-                        method_content=method_content,
-                        caption=caption,
-                        aspect_ratio=aspect_ratio,
-                        num_copies=num_candidates,
-                        max_critic_rounds=max_critic_rounds,
-                        diagram_language=diagram_lang_code,
-                    )
-                    
+                # Create input data list
+                input_data_list = create_sample_inputs(
+                    method_content=method_content,
+                    caption=caption,
+                    aspect_ratio=aspect_ratio,
+                    num_copies=num_candidates,
+                    max_critic_rounds=max_critic_rounds,
+                    diagram_language=diagram_lang_code,
+                )
+
+                with st.status(t("progress_title"), expanded=True) as status_ui:
+                    progress_bar = st.progress(0)
+                    log_container = st.container()
+
+                    def on_progress(event, info):
+                        if event == "retriever_start":
+                            log_container.write(t("progress_retriever_start"))
+                        elif event == "retriever_done":
+                            log_container.write(t("progress_retriever_done", n=info["refs_count"]))
+                        elif event == "candidate_done":
+                            done = info["completed"]
+                            total = info["total"]
+                            progress_bar.progress(done / total, text=t("progress_candidate", done=done, total=total))
+                            log_container.write(t("progress_candidate_log", done=done, total=total))
+
                     # Process in parallel
                     try:
                         results = asyncio.run(process_parallel_candidates(
-                            input_data_list, 
-                            exp_mode=exp_mode, 
+                            input_data_list,
+                            exp_mode=exp_mode,
                             retrieval_setting=retrieval_setting,
-                            model_name=model_name
+                            model_name=model_name,
+                            progress_callback=on_progress,
                         ))
                         st.session_state["results"] = results
                         st.session_state["exp_mode"] = exp_mode
@@ -666,7 +682,9 @@ def main():
                             st.info(t("info_saved", name=json_filename.name))
                         except Exception as e:
                             st.warning(t("warning_save_failed", n=len(results), error=e))
+                        status_ui.update(label=t("progress_complete", n=len(results)), state="complete", expanded=False)
                     except Exception as e:
+                        status_ui.update(label=t("progress_error"), state="error", expanded=True)
                         st.error(t("error_processing", error=e))
                         import traceback
                         st.code(traceback.format_exc())

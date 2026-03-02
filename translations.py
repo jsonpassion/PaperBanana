@@ -69,6 +69,15 @@ TRANSLATIONS = {
         "warning_save_failed": "⚠️ Generated {n} candidates, but failed to save JSON: {error}",
         "error_processing": "Error during processing: {error}",
 
+        # Progress tracking
+        "progress_title": "Generating diagrams...",
+        "progress_retriever_start": "🔍 Searching for reference diagrams...",
+        "progress_retriever_done": "✅ Reference search complete ({n} references found)",
+        "progress_candidate": "{done}/{total} candidates generated",
+        "progress_candidate_log": "✅ Candidate {done}/{total} complete",
+        "progress_complete": "✅ Generation complete — {n} candidates",
+        "progress_error": "❌ Generation failed",
+
         # Results section
         "results_header": "## 🎨 Generated Candidates",
         "results_caption": "Generated at: {timestamp} | Pipeline: {pipeline}",
@@ -228,6 +237,15 @@ TRANSLATIONS = {
         "info_saved": "💾 결과 저장 위치: `{name}`",
         "warning_save_failed": "⚠️ {n}개의 후보를 생성했지만 JSON 저장에 실패했습니다: {error}",
         "error_processing": "처리 중 오류 발생: {error}",
+
+        # Progress tracking
+        "progress_title": "다이어그램 생성 중...",
+        "progress_retriever_start": "🔍 참조 다이어그램 검색 중...",
+        "progress_retriever_done": "✅ 참조 검색 완료 ({n}개 참조 발견)",
+        "progress_candidate": "{done}/{total} 후보 생성 완료",
+        "progress_candidate_log": "✅ 후보 {done}/{total} 완료",
+        "progress_complete": "✅ 생성 완료 — {n}개 후보",
+        "progress_error": "❌ 생성 실패",
 
         # Results section
         "results_header": "## 🎨 생성된 후보",
