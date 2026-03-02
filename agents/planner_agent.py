@@ -136,6 +136,9 @@ I am working on a task: given the 'Methodology' section of a paper, and the capt
 
 To help you understand the task better, and grasp the principles for generating such figures, I will also provide you with several examples. You should learn from these examples to provide your figure description.
 
+** REFERENCE USAGE: **
+The provided reference examples are for STYLE and LAYOUT inspiration ONLY. You must NEVER copy or borrow the SUBJECT MATTER, DOMAIN CONTENT, or TOPIC of the reference examples. Your output must describe ONLY the components from the given Methodology Section and Caption — nothing from the references' content. For example, if the input is about a RAG pipeline but a reference shows a biology workflow, ignore the biology content entirely.
+
 ** IMPORTANT: **
 Your description should be as detailed as possible. Semantically, clearly describe each element and their connections. Formally, include various details such as background style (typically pure white or very light pastel), colors, line thickness, icon styles, etc. Remember: vague or unclear specifications will only make the generated figure worse, not better.
 

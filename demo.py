@@ -490,7 +490,7 @@ def main():
 
             diagram_language = st.selectbox(
                 t("diagram_language_label"),
-                ["English", "Korean (한국어)"],
+                ["Korean (한국어)", "English"],
                 index=0,
                 key="tab1_diagram_language",
                 help=t("diagram_language_help"),

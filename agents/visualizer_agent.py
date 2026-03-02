@@ -150,9 +150,11 @@ class VisualizerAgent(BaseAgent):
 
             content_list = [{"type": "text", "text": prompt_text}]
             
+            # Image generation uses lower temperature for faithful rendering
+            vis_temperature = 0.6 if cfg["use_image_generation"] else self.exp_config.temperature
             gen_config_args = {
                 "system_instruction": self.system_prompt,
-                "temperature": self.exp_config.temperature,
+                "temperature": vis_temperature,
                 "candidate_count": 1,
                 "max_output_tokens": cfg["max_output_tokens"],
             }
@@ -226,7 +228,7 @@ class VisualizerAgent(BaseAgent):
         return data
 
 
-DIAGRAM_VISUALIZER_AGENT_SYSTEM_PROMPT = """You are an expert scientific diagram illustrator. Generate high-quality scientific diagrams based on user requests."""
+DIAGRAM_VISUALIZER_AGENT_SYSTEM_PROMPT = """You are an expert scientific diagram illustrator. Generate high-quality scientific diagrams based on user requests. You must render EXACTLY what is described — do not add, remove, or substitute any elements. The generated image must faithfully match the provided description in both content and layout."""
 
 PLOT_VISUALIZER_AGENT_SYSTEM_PROMPT = """You are an expert statistical plot illustrator. Write code to generate high-quality statistical plots based on user requests."""
 
