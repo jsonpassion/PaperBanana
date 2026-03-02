@@ -20,7 +20,9 @@
 - 구조화된 입력 생성 버튼 `type="primary"` + 전체 너비 적용
 - 탭 UI 개선: 크기 확대, 활성 탭 오렌지 하이라이트, Step 1/2 워크플로우 구조
 - 기본값 최적화: 후보 4개, 화면비 16:9, Critic 1라운드, 언어 한국어 — `(추천)` 태그 표시
+- 개선 탭 기본값 최적화: 해상도 2K, 화면비 16:9 — `(추천)` 태그 표시
 - 언어 전환 시 selectbox 값 불일치 오류 수정 (`format_func` + session state 충돌 해결)
+- Streamlit 워닝 수정: `use_container_width` → `width="stretch"` (deprecated API 대응)
 
 **기능 확장**
 - 3가지 입력 모드: **간편 모드** (AI 자동 구조화), **직접 입력**, **템플릿 모드** (빈칸 채우기)
