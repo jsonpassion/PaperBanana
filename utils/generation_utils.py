@@ -127,30 +127,30 @@ async def call_gemini_with_retry_async(
                 model=model_name, contents=gemini_contents, config=config
             )
 
-            # If we are using Image Generation models to generate images
-            if (
-                "nanoviz" in model_name
-                or "image" in model_name
-            ):
-                raw_response_list = []
-                if not response.candidates or not response.candidates[0].content.parts:
-                    print(
-                        f"[Warning]: Failed to generate image, retrying in {retry_delay} seconds..."
-                    )
-                    await asyncio.sleep(retry_delay)
-                    continue
+            if not response.candidates or not response.candidates[0].content.parts:
+                print(
+                    f"[Warning]: Empty response from {model_name}, retrying in {retry_delay} seconds..."
+                )
+                await asyncio.sleep(retry_delay)
+                continue
 
-                # In this mode, we can only have one candidate
+            # Auto-detect response type: check if any part has inline_data (image)
+            has_image = any(
+                hasattr(part, 'inline_data') and part.inline_data
+                for part in response.candidates[0].content.parts
+            )
+
+            if has_image:
+                # Image generation response
+                raw_response_list = []
                 for part in response.candidates[0].content.parts:
                     if part.inline_data:
-                        # Append base64 encoded image data to raw_response_list
                         raw_response_list.append(
                             base64.b64encode(part.inline_data.data).decode("utf-8")
                         )
                         break
-
-            # Otherwise, for text generation models
             else:
+                # Text generation response
                 raw_response_list = [
                     part.text
                     for candidate in response.candidates
@@ -163,10 +163,20 @@ async def call_gemini_with_retry_async(
 
         except Exception as e:
             context_msg = f" for {error_context}" if error_context else ""
-            
+            error_str = str(e)
+
+            # Fast-fail: quota with limit 0 means the model is unavailable — retrying won't help
+            if "429" in error_str and "limit: 0" in error_str:
+                print(
+                    f"FATAL: Model '{model_name}' has zero quota (likely deprecated/unavailable). "
+                    f"Update model_name in configs/model_config.yaml."
+                )
+                result_list = ["Error"] * target_candidate_count
+                break
+
             # Exponential backoff (capped at 30s)
             current_delay = min(retry_delay * (2 ** attempt), 30)
-            
+
             print(
                 f"Attempt {attempt + 1} for model {model_name} failed{context_msg}: {e}. Retrying in {current_delay} seconds..."
             )
