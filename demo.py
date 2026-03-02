@@ -222,24 +222,32 @@ async def _analyze_image_for_corrections(client, image_bytes, edit_prompt, model
     analysis_prompt = (
         "You are an image quality analyst. Examine this image carefully and produce "
         "a concise list of specific corrections the image editor should make.\n\n"
-        "ANALYZE:\n"
-        "1. Read ALL text in the image. For each text element, check:\n"
-        "   - Is it meaningful in context, or is it garbled/nonsensical/gibberish?\n"
-        "   - Is it duplicated where it shouldn't be?\n"
-        "   - Is it a correct label for what it's pointing to?\n"
-        "2. Check arrows/connectors — do they connect logically?\n"
-        "3. Check for any visual issues (overlapping elements, clipped text, etc.)\n\n"
+        "ANALYZE THESE ASPECTS IN ORDER:\n\n"
+        "1. TEXT DUPLICATES: List every text label that appears MORE THAN ONCE. "
+        "For each duplicate, specify which instance to keep and which to remove or rename. "
+        "Example: if a label like '체계적 오차' appears twice, one is probably wrong.\n\n"
+        "2. NONSENSICAL TEXT: Identify any text that is garbled, gibberish, or does not "
+        "make sense in the diagram's context. Suggest the correct replacement.\n\n"
+        "3. VISUAL BALANCE: Check if any section/component takes up disproportionately "
+        "more space than its informational importance warrants. "
+        "If a simple illustration (e.g. a decorative image, a single icon) occupies "
+        "as much or more space than a complex chart/graph, flag it for size reduction. "
+        "Suggest shrinking oversized simple elements and giving more space to dense content.\n\n"
+        "4. MISSING LABELS: Check if any component that should have a label is unlabeled.\n\n"
+        "5. ARROWS/CONNECTORS: Do they connect logically? Any loose endpoints?\n\n"
+        "6. OVERLAPS/CLIPPING: Any text overflowing boundaries or overlapping other elements?\n\n"
         "USER'S EDIT REQUEST:\n"
         f"{edit_prompt}\n\n"
-        "OUTPUT FORMAT — respond with ONLY a numbered list of specific corrections. "
-        "Be extremely concrete. Example:\n"
-        '1. Replace "태승 대타" (bottom of center chart, x-axis) with "Underfitting / Overfitting"\n'
-        '2. The label "오차" appears twice in the center chart — keep the y-axis one, '
-        'change the in-graph one to "Error Region"\n'
-        '3. Arrow from box A to box B has no arrowhead — add one\n\n'
-        "If the image looks correct and needs no text/logic fixes, just output: "
-        '"NO CORRECTIONS NEEDED"\n'
-        "Keep the list SHORT (max 10 items). Only list real problems."
+        "OUTPUT: Respond with ONLY a numbered list of specific, concrete corrections.\n"
+        "Example:\n"
+        '1. "체계적 오차" appears twice (top-right target and middle-left target) — '
+        "remove the middle-left instance\n"
+        '2. Replace "태승 대타" (x-axis label) with "Overfitting / Underfitting"\n'
+        "3. The ruler/hand illustration is too large relative to the charts — "
+        "reduce its size by ~30% and reallocate space to the graphs\n"
+        '4. Add missing label "높은 정확도, 높은 정밀도" under the top-right target\n\n'
+        'If no corrections needed, output: "NO CORRECTIONS NEEDED"\n'
+        "Max 10 items. Only list real problems."
     )
 
     contents = [
