@@ -82,6 +82,15 @@ TRANSLATIONS = {
         "progress_complete": "✅ Generation complete — {n} candidates",
         "progress_error": "❌ Generation failed",
 
+        # Refine progress
+        "refine_progress_title": "Refining image...",
+        "refine_step_prepare": "📐 Preparing image and edit instructions...",
+        "refine_step_api": "🎨 Sending to image model ({model})...",
+        "refine_step_waiting": "⏳ Generating refined image — this may take about a minute...",
+        "refine_step_processing": "🔄 Processing response...",
+        "refine_progress_complete": "✅ Refinement complete ({resolution})",
+        "refine_progress_error": "❌ Refinement failed",
+
         # Results section
         "results_header": "## 🎨 Generated Candidates",
         "results_caption": "Generated at: {timestamp} | Pipeline: {pipeline}",
@@ -286,6 +295,15 @@ TRANSLATIONS = {
         "progress_candidate_log": "✅ 후보 {done}/{total} 완료",
         "progress_complete": "✅ 생성 완료 — {n}개 후보",
         "progress_error": "❌ 생성 실패",
+
+        # Refine progress
+        "refine_progress_title": "이미지 개선 중...",
+        "refine_step_prepare": "📐 이미지 및 편집 지침 준비 중...",
+        "refine_step_api": "🎨 이미지 모델에 전송 중 ({model})...",
+        "refine_step_waiting": "⏳ 개선 이미지 생성 중 — 약 1분 소요될 수 있습니다...",
+        "refine_step_processing": "🔄 응답 처리 중...",
+        "refine_progress_complete": "✅ 개선 완료 ({resolution})",
+        "refine_progress_error": "❌ 개선 실패",
 
         # Results section
         "results_header": "## 🎨 생성된 후보",

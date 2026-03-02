@@ -209,7 +209,7 @@ async def process_parallel_candidates(data_list, exp_mode="dev_planner_critic", 
 
     return results
 
-async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9", image_size="2K"):
+async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9", image_size="2K", progress_callback=None):
     """
     Refine an image using Gemini's image editing capability.
     Uses API Key authentication (same as the generation pipeline).
@@ -219,13 +219,20 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
         edit_prompt: Text description of desired changes
         aspect_ratio: Output aspect ratio (21:9, 16:9, 3:2)
         image_size: Output resolution (2K or 4K)
+        progress_callback: Optional callback(step, info) for progress reporting
 
     Returns:
         Tuple of (edited_image_bytes, success_message)
     """
+    def _report(step, **info):
+        if progress_callback:
+            progress_callback(step, info)
+
     try:
         from google import genai
         from google.genai import types
+
+        _report("prepare")
 
         # Initialize client with API Key (same as generation pipeline)
         api_key = get_config_val("api_keys", "google_api_key", "GOOGLE_API_KEY", "")
@@ -273,12 +280,17 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
 
         # Generate refined image
         image_model = get_config_val("defaults", "image_model_name", "IMAGE_MODEL_NAME", "")
+        _report("api_call", model=image_model)
+        _report("waiting")
+
         response = await asyncio.to_thread(
             client.models.generate_content,
             model=image_model,
             contents=contents,
             config=config
         )
+
+        _report("processing")
 
         # Extract image from response
         if response.candidates and response.candidates[0].content.parts:
@@ -951,7 +963,19 @@ def main():
                     if not final_prompt:
                         st.error(t("error_no_edit_prompt"))
                     else:
-                        with st.spinner(t("spinner_refining", resolution=refine_resolution)):
+                        with st.status(t("refine_progress_title"), expanded=True) as refine_status:
+                            log_container = st.container()
+
+                            def on_refine_progress(step, info):
+                                if step == "prepare":
+                                    log_container.write(t("refine_step_prepare"))
+                                elif step == "api_call":
+                                    log_container.write(t("refine_step_api", model=info.get("model", "")))
+                                elif step == "waiting":
+                                    log_container.write(t("refine_step_waiting"))
+                                elif step == "processing":
+                                    log_container.write(t("refine_step_processing"))
+
                             try:
                                 # Convert PIL image to bytes
                                 img_byte_arr = BytesIO()
@@ -964,18 +988,21 @@ def main():
                                         image_bytes=image_bytes,
                                         edit_prompt=final_prompt,
                                         aspect_ratio=refine_aspect_ratio,
-                                        image_size=refine_resolution
+                                        image_size=refine_resolution,
+                                        progress_callback=on_refine_progress,
                                     )
                                 )
-                                
+
                                 if refined_bytes:
                                     st.session_state["refined_image"] = refined_bytes
                                     st.session_state["refine_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                                    st.success(message)
+                                    refine_status.update(label=t("refine_progress_complete", resolution=refine_resolution), state="complete", expanded=False)
                                     st.rerun()
                                 else:
+                                    refine_status.update(label=t("refine_progress_error"), state="error", expanded=True)
                                     st.error(message)
                             except Exception as e:
+                                refine_status.update(label=t("refine_progress_error"), state="error", expanded=True)
                                 if "QUOTA_ZERO" in str(e):
                                     st.warning(t("error_quota_zero"))
                                 else:
