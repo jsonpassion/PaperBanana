@@ -220,34 +220,26 @@ async def _analyze_image_for_corrections(client, image_bytes, edit_prompt, model
     _report("analyze", model=model_name)
 
     analysis_prompt = (
-        "You are an image quality analyst. Examine this image carefully and produce "
-        "a concise list of specific corrections the image editor should make.\n\n"
-        "ANALYZE THESE ASPECTS IN ORDER:\n\n"
-        "1. TEXT DUPLICATES: List every text label that appears MORE THAN ONCE. "
-        "For each duplicate, specify which instance to keep and which to remove or rename. "
-        "Example: if a label like '체계적 오차' appears twice, one is probably wrong.\n\n"
-        "2. NONSENSICAL TEXT: Identify any text that is garbled, gibberish, or does not "
-        "make sense in the diagram's context. Suggest the correct replacement.\n\n"
-        "3. VISUAL BALANCE: Check if any section/component takes up disproportionately "
-        "more space than its informational importance warrants. "
-        "If a simple illustration (e.g. a decorative image, a single icon) occupies "
-        "as much or more space than a complex chart/graph, flag it for size reduction. "
-        "Suggest shrinking oversized simple elements and giving more space to dense content.\n\n"
-        "4. MISSING LABELS: Check if any component that should have a label is unlabeled.\n\n"
-        "5. ARROWS/CONNECTORS: Do they connect logically? Any loose endpoints?\n\n"
-        "6. OVERLAPS/CLIPPING: Any text overflowing boundaries or overlapping other elements?\n\n"
-        "USER'S EDIT REQUEST:\n"
-        f"{edit_prompt}\n\n"
-        "OUTPUT: Respond with ONLY a numbered list of specific, concrete corrections.\n"
-        "Example:\n"
-        '1. "체계적 오차" appears twice (top-right target and middle-left target) — '
-        "remove the middle-left instance\n"
-        '2. Replace "태승 대타" (x-axis label) with "Overfitting / Underfitting"\n'
-        "3. The ruler/hand illustration is too large relative to the charts — "
-        "reduce its size by ~30% and reallocate space to the graphs\n"
-        '4. Add missing label "높은 정확도, 높은 정밀도" under the top-right target\n\n'
-        'If no corrections needed, output: "NO CORRECTIONS NEEDED"\n'
-        "Max 10 items. Only list real problems."
+        "You are an image quality analyst. Examine this image and list specific "
+        "corrections for the image editor.\n\n"
+        "CHECK IN ORDER:\n"
+        "1. DUPLICATE LABELS: Any text appearing more than once? "
+        "Specify which to keep, which to remove or rename.\n"
+        "2. NONSENSICAL TEXT: Any garbled, gibberish, or contextually meaningless text? "
+        "Suggest the correct replacement based on what the diagram is about.\n"
+        "3. VISUAL BALANCE: Any component taking disproportionate space relative to "
+        "its importance? Suggest resizing.\n"
+        "4. MISSING LABELS: Any unlabeled component that needs one?\n"
+        "5. ARROWS: Any disconnected or illogical connectors?\n"
+        "6. OVERLAPS: Any text overflowing or overlapping?\n\n"
+        f"USER'S EDIT REQUEST:\n{edit_prompt}\n\n"
+        "OUTPUT: ONLY a numbered list of concrete corrections with exact locations. "
+        "Example format:\n"
+        "1. Label \"X\" appears twice (location A and B) — remove the one at B\n"
+        "2. Replace \"ABC\" (position) with \"DEF\" — original is meaningless in context\n"
+        "3. Section at top-left is oversized — reduce by ~30%\n\n"
+        "If no corrections needed: \"NO CORRECTIONS NEEDED\"\n"
+        "Max 10 items."
     )
 
     contents = [
