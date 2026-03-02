@@ -268,7 +268,7 @@ async def _analyze_image_for_corrections(client, image_bytes, edit_prompt, model
     n_corrections = 0 if "NO CORRECTIONS NEEDED" in analysis_text.upper() else len(
         [l for l in lines if l and l[0].isdigit()]
     )
-    _report("analyze_done", n=n_corrections)
+    _report("analyze_done", n=n_corrections, analysis=analysis_text)
 
     return analysis_text, n_corrections
 
@@ -312,24 +312,24 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
         )
 
         # ── Phase 2: Apply corrections with image model ──
-        # Build prompt: baseline + analysis corrections + user instructions
-        parts = [
-            "Refine this image. Keep the same layout and structure.\n",
-            "RULES:\n"
-            "- Make ALL text razor-sharp and legible.\n"
-            "- Arrows must connect clearly from source to destination.\n"
-            "- Text must not overflow its containing box.\n"
-            "- Do NOT add new components. Do NOT add figure captions.\n",
-        ]
-
+        # Corrections FIRST (highest priority), then rules, then user instructions
         if n_corrections > 0:
-            parts.append(
-                f"\nSPECIFIC CORRECTIONS (from image analysis):\n{analysis_text}\n"
+            full_prompt = (
+                "You MUST apply these corrections to the image. "
+                "These are mandatory fixes identified by analysis:\n\n"
+                f"{analysis_text}\n\n"
+                "ALSO:\n"
+                "- Make all text razor-sharp. Arrows must connect clearly.\n"
+                "- Text must stay within boundaries. Do NOT add new components.\n\n"
+                f"ADDITIONAL USER INSTRUCTIONS:\n{edit_prompt}"
             )
-
-        parts.append(f"\nUSER EDIT INSTRUCTIONS:\n{edit_prompt}")
-
-        full_prompt = "\n".join(parts)
+        else:
+            full_prompt = (
+                "Refine this image. Keep the same layout and structure.\n"
+                "- Make all text razor-sharp. Arrows must connect clearly.\n"
+                "- Text must stay within boundaries. Do NOT add new components.\n\n"
+                f"EDIT INSTRUCTIONS:\n{edit_prompt}"
+            )
 
         contents = [
             types.Part.from_text(text=full_prompt),
@@ -1076,6 +1076,9 @@ def main():
                                 log_container.write(t("refine_step_analyze", model=info.get("model", "")))
                             elif step == "analyze_done":
                                 log_container.write(t("refine_step_analyze_done", n=info.get("n", 0)))
+                                analysis = info.get("analysis", "")
+                                if analysis and "NO CORRECTIONS NEEDED" not in analysis.upper():
+                                    log_container.code(analysis, language=None)
                             elif step == "api_call":
                                 log_container.write(t("refine_step_api", model=info.get("model", "")))
                             elif step == "waiting":
