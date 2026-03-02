@@ -141,22 +141,53 @@ TRANSLATIONS = {
         "after_label": "### After ({resolution})",
         "download_refined": "⬇️ Download {resolution} Image",
 
+        # Refine – Base quality rules (always applied to every preset)
+        "preset_base_quality": "[MANDATORY QUALITY RULES — apply to ALL edits]\n1. Arrows & connectors: ensure all arrows have consistent line weights, clear arrowheads, smooth curves, and obvious flow direction. Remove any crossing or tangled arrows where possible.\n2. Boundary respect: all text labels, annotations, and captions must stay strictly within their containing boxes, frames, or boundaries. No text may overflow or clip outside its container.\n3. Visual balance: maintain proportional spacing between all components, consistent alignment, and a harmonious overall composition. The diagram should feel balanced and professionally laid out.\n4. Text clarity: all text must be fully legible, properly rendered (no garbled characters), and sized appropriately for its context.",
+
         # Refine – Preset prompts
         "preset_label": "Quick Edit Presets",
-        "preset_help": "Select a common edit action to auto-fill the instructions below",
+        "preset_help": "Select a common edit action to auto-fill the instructions below. You can also add custom instructions.",
         "preset_none": "Custom (write your own)",
-        "preset_upscale": "Upscale only (keep as-is)",
-        "preset_upscale_prompt": "Keep everything exactly the same. Do not change any content, layout, colors, or text. Only output in higher resolution.",
-        "preset_fix_text": "Fix text errors",
-        "preset_fix_text_prompt": "Carefully examine all text labels, annotations, and captions in the diagram. Fix any typos, misspellings, garbled characters, or grammatically incorrect text. Keep everything else unchanged.",
-        "preset_academic_style": "Academic paper style",
-        "preset_academic_style_prompt": "Adjust the color scheme and visual style to match modern academic paper standards (clean, professional, muted colors). Keep all content and layout the same.",
-        "preset_bolder_text": "Make text larger & bolder",
-        "preset_bolder_text_prompt": "Make all text labels, annotations, and captions significantly larger and bolder for better readability. Keep the layout and content unchanged.",
-        "preset_simplify": "Simplify & declutter",
-        "preset_simplify_prompt": "Simplify the diagram by removing unnecessary decorative elements, reducing visual clutter, and improving whitespace. Keep all essential content intact.",
-        "preset_white_bg": "Clean white background",
-        "preset_white_bg_prompt": "Replace the background with a clean, pure white background. Remove any background patterns, gradients, or textures. Keep all foreground content unchanged.",
+
+        # -- Resolution --
+        "preset_upscale": "🔍 Upscale only (keep as-is)",
+        "preset_upscale_prompt": "Keep everything exactly the same. Do not change any content, layout, colors, or text. Only regenerate the image at higher resolution with sharper details and cleaner edges.",
+
+        # -- Text fixes --
+        "preset_fix_text": "✏️ Fix text errors",
+        "preset_fix_text_prompt": "Carefully examine every text element in the diagram: labels, annotations, captions, axis titles, and legends. Fix any typos, misspellings, garbled/corrupted characters, encoding artifacts, and grammatical errors. Ensure consistent capitalization and punctuation. Keep all non-text elements unchanged.",
+        "preset_bolder_text": "🔠 Text larger & bolder",
+        "preset_bolder_text_prompt": "Increase the font size and weight of all text elements — labels, annotations, captions, axis titles, and legends — for better readability at any zoom level. Maintain consistent font sizing hierarchy (titles > labels > annotations). Keep layout and content unchanged.",
+        "preset_text_to_english": "🇺🇸 Translate text → English",
+        "preset_text_to_english_prompt": "Translate all text in the diagram (labels, annotations, captions, titles, legends) into natural, professional English. Preserve technical terms and abbreviations as-is. Keep all visual elements, layout, colors, and structure exactly the same.",
+        "preset_text_to_korean": "🇰🇷 Translate text → Korean",
+        "preset_text_to_korean_prompt": "Translate all text in the diagram (labels, annotations, captions, titles, legends) into natural, professional Korean. Preserve technical terms and abbreviations as-is. Keep all visual elements, layout, colors, and structure exactly the same.",
+
+        # -- Visual style --
+        "preset_academic_style": "🎓 Academic paper style",
+        "preset_academic_style_prompt": "Redesign the visual style to match top-tier academic publications (Nature, IEEE, ACL): use a clean white background, muted professional color palette (blues, grays, soft accents), consistent line weights, serif or clean sans-serif fonts, and minimal decorative elements. Keep all content and logical structure the same.",
+        "preset_dark_mode": "🌙 Dark mode",
+        "preset_dark_mode_prompt": "Convert the diagram to a dark theme: use a dark background (#1a1a2e or similar deep navy/charcoal), light-colored text and labels (white or light gray), and adjust all colors for good contrast on dark backgrounds. Keep all content, layout, and structure unchanged.",
+        "preset_flat_design": "🎨 Flat design",
+        "preset_flat_design_prompt": "Apply a modern flat design style: remove all shadows, gradients, and 3D effects. Use solid, flat colors with clean edges. Apply a harmonious color palette with good contrast between elements. Keep all content and layout unchanged.",
+        "preset_colorful": "🌈 Colorful & vibrant",
+        "preset_colorful_prompt": "Make the diagram more visually striking with a vibrant, saturated color palette. Use distinct, bold colors for different components to clearly differentiate them. Ensure good contrast between adjacent elements. Keep all content and layout unchanged.",
+
+        # -- Layout & structure --
+        "preset_simplify": "✨ Simplify & declutter",
+        "preset_simplify_prompt": "Simplify the diagram by removing unnecessary decorative elements, redundant labels, and visual noise. Increase whitespace between components, align elements to a clean grid, and improve visual breathing room. Keep all essential content and logical flow intact.",
+        "preset_add_numbers": "🔢 Add step numbers",
+        "preset_add_numbers_prompt": "Add clear, sequential step numbers (①②③... or 1, 2, 3...) to each major component or stage of the diagram to indicate the process flow order. Place numbers prominently near each component. Keep all existing content and layout unchanged.",
+        "preset_improve_arrows": "➡️ Improve arrows & connectors",
+        "preset_improve_arrows_prompt": "Improve all arrows and connectors: make them clearer with consistent line weights, proper arrowheads, and smooth curves. Add directional labels where helpful. Ensure flow direction is immediately obvious. Remove any crossing or overlapping arrows where possible. Keep all content unchanged.",
+        "preset_improve_contrast": "🔲 Improve contrast",
+        "preset_improve_contrast_prompt": "Improve the overall contrast and accessibility: ensure all text is clearly readable against its background, increase the distinction between adjacent components, add subtle borders or shadows where elements blend together, and ensure the diagram is legible even when printed in grayscale. Keep content and layout unchanged.",
+
+        # -- Background --
+        "preset_white_bg": "⬜ Clean white background",
+        "preset_white_bg_prompt": "Replace the background with a clean, pure white (#FFFFFF) background. Remove any background patterns, gradients, textures, or watermarks. Ensure all foreground elements remain clearly visible against the white background. Keep all content unchanged.",
+        "preset_add_border": "🖼️ Add border & frame",
+        "preset_add_border_prompt": "Add a clean, professional border and frame around the diagram. Use a thin, consistent border line with adequate padding/margin from the content. Optionally add subtle rounded corners. Keep all diagram content unchanged.",
 
         # Language selector
         "language_label": "🌐 Language",
@@ -315,22 +346,53 @@ TRANSLATIONS = {
         "after_label": "### 이후 ({resolution})",
         "download_refined": "⬇️ {resolution} 이미지 다운로드",
 
-        # Refine – Preset prompts
+        # Refine – Base quality rules (always applied — use English for better model output)
+        "preset_base_quality": "[MANDATORY QUALITY RULES — apply to ALL edits]\n1. Arrows & connectors: ensure all arrows have consistent line weights, clear arrowheads, smooth curves, and obvious flow direction. Remove any crossing or tangled arrows where possible.\n2. Boundary respect: all text labels, annotations, and captions must stay strictly within their containing boxes, frames, or boundaries. No text may overflow or clip outside its container.\n3. Visual balance: maintain proportional spacing between all components, consistent alignment, and a harmonious overall composition. The diagram should feel balanced and professionally laid out.\n4. Text clarity: all text must be fully legible, properly rendered (no garbled characters), and sized appropriately for its context.",
+
+        # Refine – Preset prompts (labels in Korean, prompts in English for quality)
         "preset_label": "빠른 편집 프리셋",
-        "preset_help": "자주 사용하는 편집 작업을 선택하면 아래 입력란에 자동 채워집니다",
+        "preset_help": "자주 사용하는 편집 작업을 선택하세요. 추가 지시사항도 함께 입력할 수 있습니다.",
         "preset_none": "직접 작성",
-        "preset_upscale": "해상도만 높이기 (내용 유지)",
-        "preset_upscale_prompt": "모든 것을 그대로 유지하세요. 내용, 레이아웃, 색상, 텍스트를 변경하지 마세요. 더 높은 해상도로만 출력하세요.",
-        "preset_fix_text": "텍스트 오류 수정",
-        "preset_fix_text_prompt": "다이어그램의 모든 텍스트 라벨, 주석, 캡션을 꼼꼼히 확인하세요. 오타, 맞춤법 오류, 깨진 문자, 문법 오류를 수정하세요. 나머지는 그대로 유지하세요.",
-        "preset_academic_style": "학술 논문 스타일 적용",
-        "preset_academic_style_prompt": "현대 학술 논문 기준에 맞게 색상 구성과 시각 스타일을 조정하세요 (깔끔하고, 전문적이며, 차분한 색상). 모든 내용과 레이아웃은 유지하세요.",
-        "preset_bolder_text": "텍스트 크게 & 굵게",
-        "preset_bolder_text_prompt": "모든 텍스트 라벨, 주석, 캡션을 더 크고 굵게 만들어 가독성을 높이세요. 레이아웃과 내용은 유지하세요.",
-        "preset_simplify": "간결하게 정리",
-        "preset_simplify_prompt": "불필요한 장식 요소를 제거하고, 시각적 복잡도를 줄이며, 여백을 개선하여 다이어그램을 간결하게 정리하세요. 핵심 내용은 모두 유지하세요.",
-        "preset_white_bg": "깨끗한 흰색 배경",
-        "preset_white_bg_prompt": "배경을 깨끗한 순백색으로 교체하세요. 배경 패턴, 그라데이션, 텍스처를 제거하세요. 전경 내용은 모두 유지하세요.",
+
+        # -- 해상도 --
+        "preset_upscale": "🔍 해상도만 높이기 (내용 유지)",
+        "preset_upscale_prompt": "Keep everything exactly the same. Do not change any content, layout, colors, or text. Only regenerate the image at higher resolution with sharper details and cleaner edges.",
+
+        # -- 텍스트 수정 --
+        "preset_fix_text": "✏️ 텍스트 오류 수정",
+        "preset_fix_text_prompt": "Carefully examine every text element in the diagram: labels, annotations, captions, axis titles, and legends. Fix any typos, misspellings, garbled/corrupted characters, encoding artifacts, and grammatical errors. Ensure consistent capitalization and punctuation. Keep all non-text elements unchanged.",
+        "preset_bolder_text": "🔠 텍스트 크게 & 굵게",
+        "preset_bolder_text_prompt": "Increase the font size and weight of all text elements — labels, annotations, captions, axis titles, and legends — for better readability at any zoom level. Maintain consistent font sizing hierarchy (titles > labels > annotations). Keep layout and content unchanged.",
+        "preset_text_to_english": "🇺🇸 텍스트 → 영어로 번역",
+        "preset_text_to_english_prompt": "Translate all text in the diagram (labels, annotations, captions, titles, legends) into natural, professional English. Preserve technical terms and abbreviations as-is. Keep all visual elements, layout, colors, and structure exactly the same.",
+        "preset_text_to_korean": "🇰🇷 텍스트 → 한국어로 번역",
+        "preset_text_to_korean_prompt": "Translate all text in the diagram (labels, annotations, captions, titles, legends) into natural, professional Korean. Preserve technical terms and abbreviations as-is. Keep all visual elements, layout, colors, and structure exactly the same.",
+
+        # -- 시각 스타일 --
+        "preset_academic_style": "🎓 학술 논문 스타일",
+        "preset_academic_style_prompt": "Redesign the visual style to match top-tier academic publications (Nature, IEEE, ACL): use a clean white background, muted professional color palette (blues, grays, soft accents), consistent line weights, serif or clean sans-serif fonts, and minimal decorative elements. Keep all content and logical structure the same.",
+        "preset_dark_mode": "🌙 다크 모드",
+        "preset_dark_mode_prompt": "Convert the diagram to a dark theme: use a dark background (#1a1a2e or similar deep navy/charcoal), light-colored text and labels (white or light gray), and adjust all colors for good contrast on dark backgrounds. Keep all content, layout, and structure unchanged.",
+        "preset_flat_design": "🎨 플랫 디자인",
+        "preset_flat_design_prompt": "Apply a modern flat design style: remove all shadows, gradients, and 3D effects. Use solid, flat colors with clean edges. Apply a harmonious color palette with good contrast between elements. Keep all content and layout unchanged.",
+        "preset_colorful": "🌈 컬러풀 & 비비드",
+        "preset_colorful_prompt": "Make the diagram more visually striking with a vibrant, saturated color palette. Use distinct, bold colors for different components to clearly differentiate them. Ensure good contrast between adjacent elements. Keep all content and layout unchanged.",
+
+        # -- 레이아웃 & 구조 --
+        "preset_simplify": "✨ 간결하게 정리",
+        "preset_simplify_prompt": "Simplify the diagram by removing unnecessary decorative elements, redundant labels, and visual noise. Increase whitespace between components, align elements to a clean grid, and improve visual breathing room. Keep all essential content and logical flow intact.",
+        "preset_add_numbers": "🔢 단계 번호 추가",
+        "preset_add_numbers_prompt": "Add clear, sequential step numbers (①②③... or 1, 2, 3...) to each major component or stage of the diagram to indicate the process flow order. Place numbers prominently near each component. Keep all existing content and layout unchanged.",
+        "preset_improve_arrows": "➡️ 화살표 & 연결선 개선",
+        "preset_improve_arrows_prompt": "Improve all arrows and connectors: make them clearer with consistent line weights, proper arrowheads, and smooth curves. Add directional labels where helpful. Ensure flow direction is immediately obvious. Remove any crossing or overlapping arrows where possible. Keep all content unchanged.",
+        "preset_improve_contrast": "🔲 대비 & 가독성 개선",
+        "preset_improve_contrast_prompt": "Improve the overall contrast and accessibility: ensure all text is clearly readable against its background, increase the distinction between adjacent components, add subtle borders or shadows where elements blend together, and ensure the diagram is legible even when printed in grayscale. Keep content and layout unchanged.",
+
+        # -- 배경 --
+        "preset_white_bg": "⬜ 깨끗한 흰색 배경",
+        "preset_white_bg_prompt": "Replace the background with a clean, pure white (#FFFFFF) background. Remove any background patterns, gradients, textures, or watermarks. Ensure all foreground elements remain clearly visible against the white background. Keep all content unchanged.",
+        "preset_add_border": "🖼️ 테두리 & 프레임 추가",
+        "preset_add_border_prompt": "Add a clean, professional border and frame around the diagram. Use a thin, consistent border line with adequate padding/margin from the content. Optionally add subtle rounded corners. Keep all diagram content unchanged.",
 
         # Language selector
         "language_label": "🌐 언어",

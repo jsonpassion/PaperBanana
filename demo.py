@@ -470,6 +470,16 @@ def main():
 
             _rec = t("recommended_tag")  # (추천) / (Recommended)
 
+            def _clean_selectbox_value(val, valid_options, default_idx=0):
+                """Strip recommendation tag from selectbox value on language switch."""
+                if val in valid_options:
+                    return val
+                # format_func appended _rec — try stripping known suffixes
+                for opt in valid_options:
+                    if val and val.startswith(opt):
+                        return opt
+                return valid_options[default_idx]
+
             exp_mode_options = ["demo_planner_critic", "demo_full"]
             exp_mode = st.selectbox(
                 t("pipeline_mode_label"),
@@ -479,6 +489,7 @@ def main():
                 format_func=lambda x: f"{x} {_rec}" if x == exp_mode_options[0] else x,
                 help=t("pipeline_mode_help")
             )
+            exp_mode = _clean_selectbox_value(exp_mode, exp_mode_options)
 
             mode_info = {
                 "demo_planner_critic": t("pipeline_planner_critic"),
@@ -495,6 +506,7 @@ def main():
                 format_func=lambda x: f"{x} {_rec}" if x == retrieval_options[0] else x,
                 help=t("retrieval_help")
             )
+            retrieval_setting = _clean_selectbox_value(retrieval_setting, retrieval_options)
 
             num_candidates = st.number_input(
                 t("num_candidates_label"),
@@ -513,6 +525,7 @@ def main():
                 format_func=lambda x: f"{x} {_rec}" if x == aspect_options[0] else x,
                 help=t("aspect_ratio_help")
             )
+            aspect_ratio = _clean_selectbox_value(aspect_ratio, aspect_options)
 
             max_critic_rounds = st.number_input(
                 t("max_critic_rounds_label"),
@@ -543,6 +556,7 @@ def main():
                 format_func=lambda x: f"{x} {_rec}" if x == lang_options[0] else x,
                 help=t("diagram_language_help"),
             )
+            diagram_language = _clean_selectbox_value(diagram_language, lang_options)
             diagram_lang_code = "ko" if "Korean" in diagram_language else "en"
         
         st.divider()
@@ -887,10 +901,19 @@ def main():
                     t("preset_none"): "",
                     t("preset_upscale"): t("preset_upscale_prompt"),
                     t("preset_fix_text"): t("preset_fix_text_prompt"),
-                    t("preset_academic_style"): t("preset_academic_style_prompt"),
                     t("preset_bolder_text"): t("preset_bolder_text_prompt"),
+                    t("preset_text_to_english"): t("preset_text_to_english_prompt"),
+                    t("preset_text_to_korean"): t("preset_text_to_korean_prompt"),
+                    t("preset_academic_style"): t("preset_academic_style_prompt"),
+                    t("preset_dark_mode"): t("preset_dark_mode_prompt"),
+                    t("preset_flat_design"): t("preset_flat_design_prompt"),
+                    t("preset_colorful"): t("preset_colorful_prompt"),
                     t("preset_simplify"): t("preset_simplify_prompt"),
+                    t("preset_add_numbers"): t("preset_add_numbers_prompt"),
+                    t("preset_improve_arrows"): t("preset_improve_arrows_prompt"),
+                    t("preset_improve_contrast"): t("preset_improve_contrast_prompt"),
                     t("preset_white_bg"): t("preset_white_bg_prompt"),
+                    t("preset_add_border"): t("preset_add_border_prompt"),
                 }
                 selected_preset = st.selectbox(
                     t("preset_label"),
@@ -898,11 +921,18 @@ def main():
                     key="refine_preset",
                     help=t("preset_help"),
                 )
-                preset_value = preset_options[selected_preset]
+                preset_value = preset_options.get(selected_preset, "")
 
-                # Show selected preset as a chip
+                # Show selected preset details (scrollable, no background)
                 if preset_value:
-                    st.info(f"**{selected_preset}**: {preset_value[:80]}...")
+                    st.markdown(
+                        f'<div style="border-left:3px solid #ccc;'
+                        f'padding:8px 12px;margin:8px 0;'
+                        f'max-height:120px;overflow-y:auto;font-size:0.85em;'
+                        f'color:#555;line-height:1.4;">'
+                        f'<strong>{selected_preset}</strong><br>{preset_value}</div>',
+                        unsafe_allow_html=True,
+                    )
 
                 additional_prompt = st.text_area(
                     t("additional_prompt_label"),
@@ -912,8 +942,9 @@ def main():
                     key="additional_edit_prompt"
                 )
 
-                # Combine: preset + user additional text
-                parts = [p for p in [preset_value, additional_prompt.strip()] if p]
+                # Combine: base quality rules + preset + user additional text
+                base_quality = t("preset_base_quality")
+                parts = [p for p in [base_quality, preset_value, additional_prompt.strip()] if p]
                 final_prompt = "\n\n".join(parts)
 
                 if st.button(t("refine_button"), type="primary", use_container_width=True):
