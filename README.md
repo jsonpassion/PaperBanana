@@ -2,102 +2,42 @@
 
 ## 업데이트 및 개선 사항 (원본 PaperVizAgent 소스 대비)
 
-### 2026-03-02: 메인 모델 교체 + API 안정성 개선
+### 2026년 3월
 
-- **메인 모델 교체**: `gemini-3.1-pro-preview` → `gemini-3-flash-preview` (RPD 250→10K, RPM 25→1K으로 할당량 40배 확대, limit:0 이슈 해소)
-- **Event loop 충돌 수정**: `asyncio.run()` → 매 호출마다 새 이벤트 루프를 생성하는 `run_async()` 헬퍼로 교체. 간편모드 → 후보 생성 순차 실행 시 "Event loop is closed" 에러 해결
-- **할당량 0 에러 UI 안내**: Google preview 모델의 간헐적 할당량 소진(`limit: 0`) 시, 웹 UI에 리셋 시간(KST 16:00~17:00) 및 확인 링크 안내 표시
-- 할당량 0 감지 시 즉시 실패 처리 — 불필요한 재시도 대기 제거
+**모델 및 API 안정성**
+- 메인 모델 `gemini-3.1-pro-preview` → `gemini-3-flash-preview`로 교체 (RPD 250→10K, RPM 25→1K, 할당량 40배 확대)
+- lite 모델 `gemini-2.0-flash` → `gemini-2.5-flash`로 교체 (폐기 모델 대응)
 - 이미지 모델 감지: 모델 이름 기반 → 응답 데이터(inline_data) 기반으로 변경
-- `smart_input.py` 폴백 로직 개선: lite 모델 실패 시 메인 모델로 자동 전환
+- 할당량 0(`limit: 0`) 감지 시 즉시 실패 처리 + 웹 UI에 리셋 시간(KST 16:00~17:00) 안내 표시
+- `asyncio.run()` → `run_async()` 헬퍼로 교체 (간편모드 → 후보 생성 순차 실행 시 "Event loop is closed" 에러 해결)
+- `smart_input.py` 폴백 로직: lite 모델 실패 시 메인 모델로 자동 전환, 에러 리포팅 개선
 
-### 2026-03-02: Smart Input 모델 수정 및 예제/간편모드 UX 개선
+**UX 및 UI 개선**
+- 입력 모드 순서 변경: 간편 모드를 기본(첫 번째)으로 배치
+- 예제 드롭다운 통합: 방법론/캡션 개별 셀렉터 → 하나의 통합 드롭다운 (한 번에 양쪽 자동 채움)
+- 예제 한글화: 4개 템플릿명에 한국어 표시명 추가
+- 간편모드 프롬프트 범용화: "academic writing" → "technical writing" (학술 논문 외 일반 기술 다이어그램도 지원)
+- 구조화된 입력 생성 버튼 `type="primary"` + 전체 너비 적용
+- 탭 UI 개선: 크기 확대, 활성 탭 오렌지 하이라이트, Step 1/2 워크플로우 구조
+- 기본값 최적화: 후보 4개, 화면비 16:9, Critic 1라운드, 언어 한국어 — `(추천)` 태그 표시
 
-**예제/간편모드 UX 개선**
-- 예제 드롭다운 통합: 방법론/캡션 개별 드롭다운 → 하나의 통합 셀렉터로 변경 (한 번에 양쪽 자동 채움)
-- 예제 한글화: 예제 템플릿명에 한국어 표시명 추가 (PaperVizAgent 프레임워크, Transformer 아키텍처, RAG 파이프라인, 학습 파이프라인)
-- 간편모드 프롬프트 범용화: "academic writing" → "technical writing"으로 변경, 학술 논문 외 일반 기술 다이어그램도 지원
-- 입력 모드 순서 변경: 간편 모드를 기본(첫 번째)으로 배치, 직접 입력은 두 번째로 이동
+**기능 확장**
+- 3가지 입력 모드: **간편 모드** (AI 자동 구조화), **직접 입력**, **템플릿 모드** (빈칸 채우기)
+- 예제 템플릿 4종: PaperVizAgent, Transformer, RAG Pipeline, Training Pipeline
+- 한글 다이어그램 생성: 4개 에이전트에 조건부 한국어 지시문 삽입
+- Refine Image 탭: API Key 인증, 빠른 편집 프리셋 6종, 프리셋+사용자 지침 병합 구조
 
-### 2026-03-02: UI 개선 및 기본 설정 최적화
+**생성 품질 및 성능**
+- Retriever 캐시: 동일 입력에 대해 1회만 실행 후 전체 후보에 공유 (API 호출 90% 절감)
+- Retriever 후보 풀 200→50 축소 (입력 토큰 75% 절감)
+- 에이전트별 `max_output_tokens` 최적화 (50K 고정 → 실제 출력 맞춤)
+- Planner 프롬프트 강화: TEXT LABELS, ARROWS & CONNECTIONS, LAYOUT, NO HALLUCINATION, NO REDUNDANCY 규칙
+- Critic 프롬프트 강화: 할루시네이션, 텍스트 겹침, 화살표, 시각 계층, 색상/대비, 중복 검사
+- Refine 베이스라인 품질: 모든 편집에 9가지 품질 규칙 자동 삽입
+- 참조 이미지 오염 방지, Visualizer 온도 1.0→0.6, 진행상황 실시간 표시
 
-- **탭 UI 대폭 개선**: 탭 크기 확대 (1.25rem, 굵게), 활성 탭 오렌지 하이라이트, Step 1/Step 2 워크플로우 구조
-- **헤더 안내 박스**: 각 탭 상단에 `st.info()` 안내 메시지로 사용자 가이드 명확화
-- **기본값 최적화**: 후보 수 4개, 화면비율 16:9, Critic 1라운드, 언어 한국어 — 모든 드롭다운에 `(추천)` 태그 표시
-- **모델 선택 간소화**: 빈칸 옵션 제거, config 기본 모델 자동 선택
+### 2026년 2월
 
-### 2026-03-02: 후보 생성 품질 개선
-
-- **참조 이미지 오염 방지**: Planner에 `REFERENCE USAGE` 규칙 추가 — 참조 예시는 스타일/레이아웃 참고용으로만 사용, 주제 복사 금지
-- **Visualizer 충실도 강화**: 이미지 생성 온도 1.0→0.6으로 낮춰 할루시네이션 감소, 시스템 프롬프트에 설명 충실 렌더링 지시 추가
-- **진행상황 실시간 표시**: 단순 스피너 → `st.status` + `st.progress` 교체 (Retriever 검색, 후보별 완료 단계별 로그)
-- **기본 언어 한국어화**: 앱 기본 언어 및 다이어그램 텍스트 언어 기본값을 한국어로 변경
-
-### 2026-03-02: 생성 속도 및 비용 최적화
-
-- **Retriever 캐시**: 동일 입력에 대해 Retriever를 1회만 실행하고 전체 후보에 공유 (10후보 기준 API 호출 90% 절감)
-- **Critic 라운드 기본값 축소**: `max_critic_rounds` 기본값 3→1로 변경 (UI에서 필요 시 증가 가능)
-- **Retriever 후보 풀 축소**: `ref_limit` 200→50으로 줄여 입력 토큰 75% 절감
-- **에이전트별 `max_output_tokens` 최적화**: 전 에이전트 50K 고정 → 실제 출력에 맞게 조정 (Retriever 8K, Planner/Critic/Stylist 20K, Visualizer(diagram) 8K, Visualizer(plot) 20K)
-
-### 2026-03-02: 에이전트 프롬프트 전면 개선 및 Refine 베이스라인 품질 보장
-
-**Planner 프롬프트 강화** (AI 이미지 생성 모델의 빈발 오류 대응)
-- `TEXT LABELS`: 라벨 15자 이내 권장, 긴 텍스트 garbling 방지
-- `ARROWS & CONNECTIONS`: 모든 연결을 "FROM [A] TO [B]" 형식으로 명시적 기술
-- `LAYOUT & HIERARCHY`: 좌→우/상→하 읽기 순서, 주요 요소 크기 차별화, 요소 간 충분한 간격
-- `NO HALLUCINATION`: 원본 방법론에 없는 모듈/연결 생성 금지
-
-**Critic 프롬프트 강화** (시각적 결함 검사 체계화)
-- `Hallucinated Elements`: 원본 대비 추가/누락 요소 교차 검증
-- `Text Overlap`: 텍스트-텍스트, 텍스트-화살표 겹침 검사
-- `Arrows & Connections`: 화살표 끊김, 역방향, 과도한 교차 검사
-- `Visual Hierarchy`: 읽기 순서 및 크기 계층 검증
-- `Color & Contrast`: 어두운 배경, 저대비 텍스트, 네온 색상 플래그
-
-**Refine 베이스라인 품질 프롬프트**
-- 모든 편집 요청에 9가지 품질 규칙 자동 삽입 (텍스트 정확성, 화살표 연결, 배경색, 대비, 요소 보존 등)
-- 사용자 지침은 `USER INSTRUCTIONS:` 섹션으로 분리하여 기본 규칙과 병합
-
-### 2026-03-02: Refine Image 개선 및 다이어그램 품질 향상
-
-**Refine Image 탭**
-- Vertex AI 인증 → API Key 방식으로 전환 (ADC 미설정 에러 해결)
-- 빠른 편집 프리셋 드롭다운 추가 (6종: 해상도만 높이기, 텍스트 오류 수정, 학술 스타일 적용, 텍스트 크게/굵게, 간결하게 정리, 흰색 배경)
-- 프리셋 + 사용자 추가 지침 합산 구조 (택1이 아닌 병합)
-
-**다이어그램 품질**
-- Planner 프롬프트에 `NO REDUNDANCY` 규칙 추가 (개념/용어 1회만 표현)
-- Critic 프롬프트에 `Redundancy & Duplication` 검사 + `Conciseness` 규칙 추가
-
-**텍스트 정리**
-- 중복/의미 변질된 번역 키 개선 (`method_content_help`, `caption_help`, `refine_caption`, `edit_prompt_help`, `file_uploader_help`)
-- Smart Input 에러 핸들링 강화 (재시도 증가, API 실패 시 사용자 친화적 메시지)
-
-### 2026-03-02: 기능 확장 (Phase 1-3)
-
-**Phase 1: 예제 템플릿 확장**
-- `demo.py`에 하드코딩되어 있던 예제를 독립 모듈 `example_templates.py`로 분리
-- 새 예제 3종 추가: **Transformer Architecture**, **RAG Pipeline**, **Training Pipeline (Encoder-Decoder)**
-- 예제 드롭다운이 `EXAMPLE_TEMPLATES` 딕셔너리에서 동적으로 생성 (총 4개)
-
-**Phase 2: 한글 다이어그램 생성**
-- `ExpConfig` 및 데이터 파이프라인에 `diagram_language` 필드 추가
-- 사이드바에 "다이어그램 텍스트 언어" 선택기 추가 (English / Korean)
-- 4개 에이전트에 조건부 한글 언어 지시문 삽입:
-  - `planner_agent.py`: 한글 라벨 생성 지시
-  - `visualizer_agent.py`: 한글 렌더링 지시
-  - `critic_agent.py`: 한글 라벨 보존 지시
-  - `stylist_agent.py`: 한글 라벨 보존 지시
-- 시스템 프롬프트 번역 불필요 (LLM이 영어 시스템 프롬프트 내에서도 한국어 지시를 이해)
-
-**Phase 3: Smart Input 시스템**
-- `st.radio`를 통한 3가지 입력 모드 추가: **직접 입력**, **간편 모드**, **템플릿 모드**
-- **간편 모드** (`utils/smart_input.py`): 간단한 설명 입력 → LLM이 구조화된 방법론 섹션 + 캡션 자동 생성
-- **템플릿 모드** (`input_templates.py`): Pipeline/Architecture, Comparison/Ablation, Flowchart/Process 빈칸 채우기 템플릿
-- 모든 새 UI 요소에 한/영 i18n 완전 지원
-
-### 2026-02-28: 한국어(i18n) 언어 지원
 - 한국어 UI 번역 추가 (`translations.py`)
 - 데모 UI 헤더에 언어 선택기 추가
 
