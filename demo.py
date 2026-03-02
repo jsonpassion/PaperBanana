@@ -932,14 +932,13 @@ def main():
                     ("preset_add_border", "preset_add_border_prompt"),
                 ]
 
-                with st.expander(t("preset_label"), expanded=False):
-                    st.caption(t("preset_help"))
-                    selected_prompts = []
-                    selected_labels = []
-                    for label_key, prompt_key in preset_items:
-                        if st.checkbox(t(label_key), key=f"preset_cb_{label_key}"):
-                            selected_prompts.append(t(prompt_key))
-                            selected_labels.append(t(label_key))
+                st.caption(t("preset_help"))
+                selected_prompts = []
+                selected_labels = []
+                for label_key, prompt_key in preset_items:
+                    if st.checkbox(t(label_key), key=f"preset_cb_{label_key}"):
+                        selected_prompts.append(t(prompt_key))
+                        selected_labels.append(t(label_key))
 
                 # Show selected presets summary
                 if selected_labels:
