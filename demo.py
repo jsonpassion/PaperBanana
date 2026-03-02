@@ -979,59 +979,68 @@ def main():
                 parts = [p for p in [base_quality, preset_combined, additional_prompt.strip()] if p]
                 final_prompt = "\n\n".join(parts)
 
+                # Phase 1: Button click → save params, set busy, rerun to disable UI
                 if st.button(t("refine_button"), type="primary", width="stretch", disabled=_busy):
                     if not final_prompt:
                         st.error(t("error_no_edit_prompt"))
                     else:
+                        # Convert PIL image to bytes before rerun
+                        img_byte_arr = BytesIO()
+                        uploaded_image.save(img_byte_arr, format='JPEG')
+                        st.session_state["_refine_pending"] = {
+                            "image_bytes": img_byte_arr.getvalue(),
+                            "edit_prompt": final_prompt,
+                            "aspect_ratio": refine_aspect_ratio,
+                            "resolution": refine_resolution,
+                        }
                         st.session_state["processing"] = True
-                        with st.status(t("refine_progress_title"), expanded=True) as refine_status:
-                            log_container = st.container()
+                        st.rerun()
 
-                            def on_refine_progress(step, info):
-                                if step == "prepare":
-                                    log_container.write(t("refine_step_prepare"))
-                                elif step == "api_call":
-                                    log_container.write(t("refine_step_api", model=info.get("model", "")))
-                                elif step == "waiting":
-                                    log_container.write(t("refine_step_waiting"))
-                                elif step == "processing":
-                                    log_container.write(t("refine_step_processing"))
+                # Phase 2: Execute pending refine (UI is now disabled)
+                if st.session_state.get("_refine_pending"):
+                    pending = st.session_state.pop("_refine_pending")
+                    with st.status(t("refine_progress_title"), expanded=True) as refine_status:
+                        log_container = st.container()
 
-                            try:
-                                # Convert PIL image to bytes
-                                img_byte_arr = BytesIO()
-                                uploaded_image.save(img_byte_arr, format='JPEG')
-                                image_bytes = img_byte_arr.getvalue()
+                        def on_refine_progress(step, info):
+                            if step == "prepare":
+                                log_container.write(t("refine_step_prepare"))
+                            elif step == "api_call":
+                                log_container.write(t("refine_step_api", model=info.get("model", "")))
+                            elif step == "waiting":
+                                log_container.write(t("refine_step_waiting"))
+                            elif step == "processing":
+                                log_container.write(t("refine_step_processing"))
 
-                                # Call nanoviz API
-                                refined_bytes, message = run_async(
-                                    refine_image_with_nanoviz(
-                                        image_bytes=image_bytes,
-                                        edit_prompt=final_prompt,
-                                        aspect_ratio=refine_aspect_ratio,
-                                        image_size=refine_resolution,
-                                        progress_callback=on_refine_progress,
-                                    )
+                        try:
+                            refined_bytes, message = run_async(
+                                refine_image_with_nanoviz(
+                                    image_bytes=pending["image_bytes"],
+                                    edit_prompt=pending["edit_prompt"],
+                                    aspect_ratio=pending["aspect_ratio"],
+                                    image_size=pending["resolution"],
+                                    progress_callback=on_refine_progress,
                                 )
+                            )
 
-                                if refined_bytes:
-                                    st.session_state["refined_image"] = refined_bytes
-                                    st.session_state["refine_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                                    refine_status.update(label=t("refine_progress_complete", resolution=refine_resolution), state="complete", expanded=False)
-                                else:
-                                    refine_status.update(label=t("refine_progress_error"), state="error", expanded=True)
-                                    st.error(message)
-                            except Exception as e:
+                            if refined_bytes:
+                                st.session_state["refined_image"] = refined_bytes
+                                st.session_state["refine_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                refine_status.update(label=t("refine_progress_complete", resolution=pending["resolution"]), state="complete", expanded=False)
+                            else:
                                 refine_status.update(label=t("refine_progress_error"), state="error", expanded=True)
-                                if "QUOTA_ZERO" in str(e):
-                                    st.warning(t("error_quota_zero"))
-                                else:
-                                    st.error(t("error_refinement", error=e))
-                                    import traceback
-                                    st.code(traceback.format_exc())
-                            finally:
-                                st.session_state["processing"] = False
-                                st.rerun()
+                                st.error(message)
+                        except Exception as e:
+                            refine_status.update(label=t("refine_progress_error"), state="error", expanded=True)
+                            if "QUOTA_ZERO" in str(e):
+                                st.warning(t("error_quota_zero"))
+                            else:
+                                st.error(t("error_refinement", error=e))
+                                import traceback
+                                st.code(traceback.format_exc())
+                        finally:
+                            st.session_state["processing"] = False
+                            st.rerun()
             
             # Display refined result if available
             if "refined_image" in st.session_state:
