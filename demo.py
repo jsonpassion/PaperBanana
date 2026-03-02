@@ -220,26 +220,28 @@ async def _analyze_image_for_corrections(client, image_bytes, edit_prompt, model
     _report("analyze", model=model_name)
 
     analysis_prompt = (
-        "You are an image quality analyst. Examine this image and list specific "
-        "corrections for the image editor.\n\n"
-        "CHECK IN ORDER:\n"
-        "1. DUPLICATE LABELS: Any text appearing more than once? "
-        "Specify which to keep, which to remove or rename.\n"
-        "2. NONSENSICAL TEXT: Any garbled, gibberish, or contextually meaningless text? "
-        "Suggest the correct replacement based on what the diagram is about.\n"
-        "3. VISUAL BALANCE: Any component taking disproportionate space relative to "
-        "its importance? Suggest resizing.\n"
-        "4. MISSING LABELS: Any unlabeled component that needs one?\n"
-        "5. ARROWS: Any disconnected or illogical connectors?\n"
-        "6. OVERLAPS: Any text overflowing or overlapping?\n\n"
+        "You are an image quality analyst. Examine this image thoroughly "
+        "and list specific corrections.\n\n"
+        "CHECK THESE — from large-scale structure down to details:\n\n"
+        "1. DUPLICATE SECTIONS: Are any entire panels/sections repeated? "
+        "Two panels with the same title or nearly identical content = duplication. "
+        "Specify which to keep and which to replace with different content or remove.\n\n"
+        "2. CONTENT-VISUAL MISMATCH: For each section, does the visual content "
+        "(charts, icons, illustrations) correctly represent what the section title "
+        "describes? If a graphic doesn't match its label, describe what's wrong "
+        "and what it should look like.\n\n"
+        "3. INCOMPLETE SECTIONS: Is any section missing key information that its "
+        "title implies? Missing axis labels, missing data series, missing legends, "
+        "or missing sub-components that should be there.\n\n"
+        "4. DUPLICATE LABELS: Any text appearing more than once where it shouldn't?\n\n"
+        "5. NONSENSICAL TEXT: Any garbled or contextually meaningless text?\n\n"
+        "6. VISUAL BALANCE: Any component taking disproportionate space?\n\n"
+        "7. ARROWS/OVERLAPS: Disconnected connectors or overflowing text?\n\n"
         f"USER'S EDIT REQUEST:\n{edit_prompt}\n\n"
-        "OUTPUT: ONLY a numbered list of concrete corrections with exact locations. "
-        "Example format:\n"
-        "1. Label \"X\" appears twice (location A and B) — remove the one at B\n"
-        "2. Replace \"ABC\" (position) with \"DEF\" — original is meaningless in context\n"
-        "3. Section at top-left is oversized — reduce by ~30%\n\n"
+        "OUTPUT: ONLY a numbered list of concrete corrections.\n"
+        "Be specific about locations (e.g. 'top-right panel', 'bottom-left section').\n"
         "If no corrections needed: \"NO CORRECTIONS NEEDED\"\n"
-        "Max 10 items."
+        "Max 12 items."
     )
 
     contents = [
@@ -315,19 +317,22 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
         # Corrections FIRST (highest priority), then rules, then user instructions
         if n_corrections > 0:
             full_prompt = (
-                "You MUST apply these corrections to the image. "
-                "These are mandatory fixes identified by analysis:\n\n"
+                "MANDATORY FIXES — you MUST apply all of these:\n\n"
                 f"{analysis_text}\n\n"
-                "ALSO:\n"
-                "- Make all text razor-sharp. Arrows must connect clearly.\n"
-                "- Text must stay within boundaries. Do NOT add new components.\n\n"
-                f"ADDITIONAL USER INSTRUCTIONS:\n{edit_prompt}"
+                "For duplicate sections: replace the duplicate with the correct "
+                "unique content, or merge it into the remaining section.\n"
+                "For content mismatches: redraw the visual to correctly represent "
+                "what the section title describes.\n"
+                "For incomplete sections: add the missing information.\n\n"
+                "ALSO: Make all text sharp. Arrows connect clearly. "
+                "Text stays within boundaries.\n\n"
+                f"USER INSTRUCTIONS:\n{edit_prompt}"
             )
         else:
             full_prompt = (
                 "Refine this image. Keep the same layout and structure.\n"
-                "- Make all text razor-sharp. Arrows must connect clearly.\n"
-                "- Text must stay within boundaries. Do NOT add new components.\n\n"
+                "Make all text sharp. Arrows connect clearly. "
+                "Text stays within boundaries.\n\n"
                 f"EDIT INSTRUCTIONS:\n{edit_prompt}"
             )
 
