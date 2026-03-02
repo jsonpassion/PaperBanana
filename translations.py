@@ -25,11 +25,11 @@ TRANSLATIONS = {
         "app_subtitle": "AI-powered scientific diagram generation and refinement",
 
         # Tabs
-        "tab_generate": "📊 Generate Candidates",
-        "tab_refine": "✨ Refine Image",
+        "tab_generate": "Step 1. Generate Diagrams",
+        "tab_refine": "Step 2. Refine & Upscale",
 
         # Tab 1 header
-        "generate_header": "### Generate multiple diagram candidates from your method section and caption",
+        "generate_header": "Enter your method section and caption below, then generate multiple diagram candidates.",
 
         # Sidebar – Generation Settings
         "sidebar_generation_title": "⚙️ Generation Settings",
@@ -59,6 +59,9 @@ TRANSLATIONS = {
         "caption_label": "Figure Caption (Markdown recommended)",
         "caption_placeholder": "Enter the figure caption...",
         "caption_help": "A concise description of the figure to generate, specifying its scope and key components.",
+
+        # Recommended tag
+        "recommended_tag": "(Recommended)",
 
         # Generate button / processing
         "generate_button": "🚀 Generate Candidates",
@@ -110,7 +113,7 @@ TRANSLATIONS = {
         "stage_critic_round_desc": "Refined after critic feedback (iteration {n})",
 
         # Tab 2 – Refine Image
-        "refine_header": "### Refine and upscale your diagram to high resolution (2K/4K)",
+        "refine_header": "Upload a generated diagram, then refine and upscale to high resolution.",
         "refine_caption": "Upload a diagram, describe desired edits, and generate an improved high-res version",
         "sidebar_refine_title": "✨ Refinement Settings",
         "target_resolution_label": "Target Resolution",
@@ -194,11 +197,11 @@ TRANSLATIONS = {
         "app_subtitle": "AI 기반 과학 논문 다이어그램 생성 및 개선",
 
         # Tabs
-        "tab_generate": "📊 후보 생성",
-        "tab_refine": "✨ 이미지 개선",
+        "tab_generate": "Step 1. 다이어그램 생성",
+        "tab_refine": "Step 2. 개선 & 업스케일",
 
         # Tab 1 header
-        "generate_header": "### 방법론 섹션과 캡션으로 여러 다이어그램 후보를 생성합니다",
+        "generate_header": "방법론 섹션과 캡션을 입력한 뒤, 여러 다이어그램 후보를 생성하세요.",
 
         # Sidebar – Generation Settings
         "sidebar_generation_title": "⚙️ 생성 설정",
@@ -228,6 +231,9 @@ TRANSLATIONS = {
         "caption_label": "그림 캡션 (Markdown 권장)",
         "caption_placeholder": "그림 캡션을 입력하세요...",
         "caption_help": "생성할 그림의 범위와 핵심 구성요소를 설명하는 간결한 캡션입니다.",
+
+        # Recommended tag
+        "recommended_tag": "(추천)",
 
         # Generate button / processing
         "generate_button": "🚀 후보 생성",
@@ -279,7 +285,7 @@ TRANSLATIONS = {
         "stage_critic_round_desc": "Critic 피드백 후 개선 (반복 {n})",
 
         # Tab 2 – Refine Image
-        "refine_header": "### 다이어그램을 고해상도(2K/4K)로 개선 및 업스케일합니다",
+        "refine_header": "생성된 다이어그램을 업로드하고, 고해상도(2K/4K)로 개선 및 업스케일하세요.",
         "refine_caption": "다이어그램을 업로드하고 원하는 편집을 설명하면 고해상도 개선 버전을 생성합니다",
         "sidebar_refine_title": "✨ 개선 설정",
         "target_resolution_label": "목표 해상도",

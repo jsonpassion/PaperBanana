@@ -90,6 +90,28 @@ st.set_page_config(
     page_icon="🍌"
 )
 
+# Custom CSS for bigger tabs and cleaner UI
+st.markdown("""
+<style>
+/* Bigger, bolder tab buttons */
+div[data-testid="stTabs"] button[data-baseweb="tab"] {
+    font-size: 1.25rem;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+}
+/* Active tab highlight */
+div[data-testid="stTabs"] button[aria-selected="true"] {
+    border-bottom: 3px solid #ff6b35;
+}
+/* Tab list bottom border */
+div[data-testid="stTabs"] [role="tablist"] {
+    gap: 0.5rem;
+    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 1rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
 def clean_text(text):
     """Clean text by removing invalid UTF-8 surrogate characters."""
     if not text:
@@ -417,24 +439,28 @@ def main():
             )
             st.session_state["language"] = SUPPORTED_LANGUAGES[lang_display]
 
-    st.markdown(t("app_subtitle"))
+    st.caption(t("app_subtitle"))
 
     # Create tabs
     tab1, tab2 = st.tabs([t("tab_generate"), t("tab_refine")])
-    
+
     # ==================== TAB 1: Generate Candidates ====================
     with tab1:
-        st.markdown(t("generate_header"))
+        st.info(t("generate_header"))
 
         # Sidebar configuration for Tab 1
         with st.sidebar:
             st.title(t("sidebar_generation_title"))
 
+            _rec = t("recommended_tag")  # (추천) / (Recommended)
+
+            exp_mode_options = ["demo_planner_critic", "demo_full"]
             exp_mode = st.selectbox(
                 t("pipeline_mode_label"),
-                ["demo_planner_critic", "demo_full"],
+                exp_mode_options,
                 index=0,
                 key="tab1_exp_mode",
+                format_func=lambda x: f"{x} {_rec}" if x == exp_mode_options[0] else x,
                 help=t("pipeline_mode_help")
             )
 
@@ -444,11 +470,13 @@ def main():
             }
             st.info(t("pipeline_info", pipeline=mode_info[exp_mode]))
 
+            retrieval_options = ["auto", "manual", "random", "none"]
             retrieval_setting = st.selectbox(
                 t("retrieval_label"),
-                ["auto", "manual", "random", "none"],
+                retrieval_options,
                 index=0,
                 key="tab1_retrieval_setting",
+                format_func=lambda x: f"{x} {_rec}" if x == retrieval_options[0] else x,
                 help=t("retrieval_help")
             )
 
@@ -456,15 +484,17 @@ def main():
                 t("num_candidates_label"),
                 min_value=1,
                 max_value=20,
-                value=10,
+                value=4,
                 key="tab1_num_candidates",
-                help=t("num_candidates_help")
+                help=t("num_candidates_help") + f" ({_rec}: 4)"
             )
 
+            aspect_options = ["16:9", "21:9", "3:2"]
             aspect_ratio = st.selectbox(
                 t("aspect_ratio_label"),
-                ["21:9", "16:9", "3:2"],
+                aspect_options,
                 key="tab1_aspect_ratio",
+                format_func=lambda x: f"{x} {_rec}" if x == aspect_options[0] else x,
                 help=t("aspect_ratio_help")
             )
 
@@ -474,7 +504,7 @@ def main():
                 max_value=5,
                 value=1,
                 key="tab1_max_critic_rounds",
-                help=t("max_critic_rounds_help")
+                help=t("max_critic_rounds_help") + f" ({_rec}: 1)"
             )
 
             default_model = get_config_val("defaults", "model_name", "MODEL_NAME", "YOUR_MODEL_NAME_HERE")
@@ -488,11 +518,13 @@ def main():
                 help=t("model_name_help")
             )
 
+            lang_options = ["Korean (한국어)", "English"]
             diagram_language = st.selectbox(
                 t("diagram_language_label"),
-                ["Korean (한국어)", "English"],
+                lang_options,
                 index=0,
                 key="tab1_diagram_language",
+                format_func=lambda x: f"{x} {_rec}" if x == lang_options[0] else x,
                 help=t("diagram_language_help"),
             )
             diagram_lang_code = "ko" if "Korean" in diagram_language else "en"
@@ -783,8 +815,7 @@ def main():
     
     # ==================== TAB 2: Refine Image ====================
     with tab2:
-        st.markdown(t("refine_header"))
-        st.caption(t("refine_caption"))
+        st.info(t("refine_header"))
 
         # Sidebar for refinement settings
         with st.sidebar:
