@@ -167,12 +167,11 @@ async def call_gemini_with_retry_async(
 
             # Fast-fail: quota with limit 0 means the model is unavailable — retrying won't help
             if "429" in error_str and "limit: 0" in error_str:
-                print(
-                    f"FATAL: Model '{model_name}' has zero quota (likely deprecated/unavailable). "
-                    f"Update model_name in configs/model_config.yaml."
+                raise RuntimeError(
+                    f"QUOTA_ZERO: Model '{model_name}' has zero quota. "
+                    f"This is a known intermittent issue with Google's preview models. "
+                    f"Quota resets daily at midnight Pacific Time (KST 16:00-17:00)."
                 )
-                result_list = ["Error"] * target_candidate_count
-                break
 
             # Exponential backoff (capped at 30s)
             current_delay = min(retry_delay * (2 ** attempt), 30)

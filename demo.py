@@ -32,6 +32,22 @@ from datetime import datetime
 from translations import TRANSLATIONS
 from example_templates import EXAMPLE_TEMPLATES, EXAMPLE_DISPLAY_NAMES_KO
 
+
+def run_async(coro):
+    """Run async coroutine in a fresh event loop (Streamlit-safe).
+
+    run_async() closes the loop after finishing, which orphans the
+    Gemini client's async session.  Creating a brand-new loop each time
+    avoids the 'Event loop is closed' error on successive calls.
+    """
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+
+
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -559,12 +575,15 @@ def main():
                         try:
                             from utils.smart_input import generate_smart_input
                             lang = st.session_state.get("language", "en")
-                            result = asyncio.run(generate_smart_input(simple_desc, language=lang))
+                            result = run_async(generate_smart_input(simple_desc, language=lang))
                             st.session_state["method_content"] = result["method"]
                             st.session_state["caption"] = result["caption"]
                             st.rerun()
                         except Exception as e:
-                            st.error(t("simple_mode_api_error", error=e))
+                            if "QUOTA_ZERO" in str(e):
+                                st.warning(t("error_quota_zero"))
+                            else:
+                                st.error(t("simple_mode_api_error", error=e))
                 else:
                     st.error(t("simple_mode_empty_error"))
 
@@ -682,7 +701,7 @@ def main():
 
                     # Process in parallel
                     try:
-                        results = asyncio.run(process_parallel_candidates(
+                        results = run_async(process_parallel_candidates(
                             input_data_list,
                             exp_mode=exp_mode,
                             retrieval_setting=retrieval_setting,
@@ -718,9 +737,12 @@ def main():
                         status_ui.update(label=t("progress_complete", n=len(results)), state="complete", expanded=False)
                     except Exception as e:
                         status_ui.update(label=t("progress_error"), state="error", expanded=True)
-                        st.error(t("error_processing", error=e))
-                        import traceback
-                        st.code(traceback.format_exc())
+                        if "QUOTA_ZERO" in str(e):
+                            st.warning(t("error_quota_zero"))
+                        else:
+                            st.error(t("error_processing", error=e))
+                            import traceback
+                            st.code(traceback.format_exc())
         
         # Display results
         if "results" in st.session_state and st.session_state["results"]:
@@ -906,7 +928,7 @@ def main():
                                 image_bytes = img_byte_arr.getvalue()
 
                                 # Call nanoviz API
-                                refined_bytes, message = asyncio.run(
+                                refined_bytes, message = run_async(
                                     refine_image_with_nanoviz(
                                         image_bytes=image_bytes,
                                         edit_prompt=final_prompt,
@@ -923,9 +945,12 @@ def main():
                                 else:
                                     st.error(message)
                             except Exception as e:
-                                st.error(t("error_refinement", error=e))
-                                import traceback
-                                st.code(traceback.format_exc())
+                                if "QUOTA_ZERO" in str(e):
+                                    st.warning(t("error_quota_zero"))
+                                else:
+                                    st.error(t("error_refinement", error=e))
+                                    import traceback
+                                    st.code(traceback.format_exc())
             
             # Display refined result if available
             if "refined_image" in st.session_state:

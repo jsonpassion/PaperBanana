@@ -71,6 +71,7 @@ TRANSLATIONS = {
         "info_saved": "💾 Results saved to: `{name}`",
         "warning_save_failed": "⚠️ Generated {n} candidates, but failed to save JSON: {error}",
         "error_processing": "Error during processing: {error}",
+        "error_quota_zero": "⚠️ **Model quota temporarily exhausted (limit: 0)**\n\nThis is a known intermittent issue with Google's preview models. The quota resets daily at **midnight Pacific Time (KST 16:00–17:00)**.\n\nPlease try again after the reset, or check your quota status at [Google AI Studio](https://aistudio.google.com/rate-limit).",
 
         # Progress tracking
         "progress_title": "Generating diagrams...",
@@ -244,6 +245,7 @@ TRANSLATIONS = {
         "info_saved": "💾 결과 저장 위치: `{name}`",
         "warning_save_failed": "⚠️ {n}개의 후보를 생성했지만 JSON 저장에 실패했습니다: {error}",
         "error_processing": "처리 중 오류 발생: {error}",
+        "error_quota_zero": "⚠️ **모델 할당량 일시 소진 (limit: 0)**\n\nGoogle preview 모델의 알려진 간헐적 이슈입니다. 할당량은 매일 **태평양 시간 자정 (한국시간 16:00~17:00)** 에 리셋됩니다.\n\n리셋 후 다시 시도하거나, [Google AI Studio](https://aistudio.google.com/rate-limit)에서 할당량 상태를 확인하세요.",
 
         # Progress tracking
         "progress_title": "다이어그램 생성 중...",
