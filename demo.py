@@ -469,6 +469,9 @@ def main():
 
     st.caption(t("app_subtitle"))
 
+    # Global processing lock — disables interactive elements during long-running tasks
+    _busy = st.session_state.get("processing", False)
+
     _rec = t("recommended_tag")  # (추천) / (Recommended)
 
     def _clean_selectbox_value(val, valid_options, default_idx=0):
@@ -594,8 +597,9 @@ def main():
                 placeholder=t("simple_mode_placeholder"),
                 key="simple_desc_input",
             )
-            if st.button(t("simple_mode_generate_button"), key="simple_gen_btn", type="primary", width="stretch"):
+            if st.button(t("simple_mode_generate_button"), key="simple_gen_btn", type="primary", width="stretch", disabled=_busy):
                 if simple_desc.strip():
+                    st.session_state["processing"] = True
                     with st.spinner(t("simple_mode_spinner")):
                         try:
                             from utils.smart_input import generate_smart_input
@@ -603,12 +607,14 @@ def main():
                             result = run_async(generate_smart_input(simple_desc, language=lang))
                             st.session_state["method_content"] = result["method"]
                             st.session_state["caption"] = result["caption"]
-                            st.rerun()
                         except Exception as e:
                             if "QUOTA_ZERO" in str(e):
                                 st.warning(t("error_quota_zero"))
                             else:
                                 st.error(t("simple_mode_api_error", error=e))
+                        finally:
+                            st.session_state["processing"] = False
+                            st.rerun()
                 else:
                     st.error(t("simple_mode_empty_error"))
 
@@ -691,14 +697,15 @@ def main():
             )
         
         # Process button
-        if st.button(t("generate_button"), type="primary", width="stretch"):
+        if st.button(t("generate_button"), type="primary", width="stretch", disabled=_busy):
             if not method_content or not caption:
                 st.error(t("error_missing_input"))
             else:
+                st.session_state["processing"] = True
                 # Save to session state
                 st.session_state["method_content"] = method_content
                 st.session_state["caption"] = caption
-                
+
                 # Create input data list
                 input_data_list = create_sample_inputs(
                     method_content=method_content,
@@ -737,23 +744,23 @@ def main():
                         st.session_state["exp_mode"] = exp_mode
                         timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         st.session_state["timestamp"] = timestamp_str
-                        
+
                         # Save results to JSON file
                         try:
                             # Create results directory if it doesn't exist
                             results_dir = Path(__file__).parent / "results" / "demo"
                             results_dir.mkdir(parents=True, exist_ok=True)
-                            
+
                             # Generate filename with timestamp
                             json_filename = results_dir / f"demo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                            
+
                             # Save to JSON with proper encoding handling (like main.py)
                             with open(json_filename, "w", encoding="utf-8", errors="surrogateescape") as f:
                                 json_string = json.dumps(results, ensure_ascii=False, indent=4)
                                 # Clean invalid UTF-8 characters
                                 json_string = json_string.encode("utf-8", "ignore").decode("utf-8")
                                 f.write(json_string)
-                            
+
                             st.session_state["json_file"] = str(json_filename)
                             st.success(t("success_generated", n=len(results)))
                             st.info(t("info_saved", name=json_filename.name))
@@ -768,6 +775,8 @@ def main():
                             st.error(t("error_processing", error=e))
                             import traceback
                             st.code(traceback.format_exc())
+                    finally:
+                        st.session_state["processing"] = False
         
         # Display results
         if "results" in st.session_state and st.session_state["results"]:
@@ -935,10 +944,13 @@ def main():
                 st.caption(t("preset_help"))
                 selected_prompts = []
                 selected_labels = []
-                for label_key, prompt_key in preset_items:
-                    if st.checkbox(t(label_key), key=f"preset_cb_{label_key}"):
-                        selected_prompts.append(t(prompt_key))
-                        selected_labels.append(t(label_key))
+                mid = (len(preset_items) + 1) // 2
+                pcol1, pcol2 = st.columns(2)
+                for idx, (label_key, prompt_key) in enumerate(preset_items):
+                    with pcol1 if idx < mid else pcol2:
+                        if st.checkbox(t(label_key), key=f"preset_cb_{label_key}", disabled=_busy):
+                            selected_prompts.append(t(prompt_key))
+                            selected_labels.append(t(label_key))
 
                 # Show selected presets summary
                 if selected_labels:
@@ -967,10 +979,11 @@ def main():
                 parts = [p for p in [base_quality, preset_combined, additional_prompt.strip()] if p]
                 final_prompt = "\n\n".join(parts)
 
-                if st.button(t("refine_button"), type="primary", width="stretch"):
+                if st.button(t("refine_button"), type="primary", width="stretch", disabled=_busy):
                     if not final_prompt:
                         st.error(t("error_no_edit_prompt"))
                     else:
+                        st.session_state["processing"] = True
                         with st.status(t("refine_progress_title"), expanded=True) as refine_status:
                             log_container = st.container()
 
@@ -1005,7 +1018,6 @@ def main():
                                     st.session_state["refined_image"] = refined_bytes
                                     st.session_state["refine_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                                     refine_status.update(label=t("refine_progress_complete", resolution=refine_resolution), state="complete", expanded=False)
-                                    st.rerun()
                                 else:
                                     refine_status.update(label=t("refine_progress_error"), state="error", expanded=True)
                                     st.error(message)
@@ -1017,6 +1029,9 @@ def main():
                                     st.error(t("error_refinement", error=e))
                                     import traceback
                                     st.code(traceback.format_exc())
+                            finally:
+                                st.session_state["processing"] = False
+                                st.rerun()
             
             # Display refined result if available
             if "refined_image" in st.session_state:
