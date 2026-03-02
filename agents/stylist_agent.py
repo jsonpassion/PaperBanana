@@ -90,7 +90,7 @@ class StylistAgent(BaseAgent):
                 system_instruction=self.system_prompt,
                 temperature=self.exp_config.temperature,
                 candidate_count=1,
-                max_output_tokens=50000,
+                max_output_tokens=20000,
             ),
             max_attempts=5,
             retry_delay=5,

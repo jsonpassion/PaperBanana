@@ -2,6 +2,13 @@
 
 ## 업데이트 및 개선 사항 (원본 PaperVizAgent 소스 대비)
 
+### 2026-03-02: 생성 속도 및 비용 최적화
+
+- **Retriever 캐시**: 동일 입력에 대해 Retriever를 1회만 실행하고 전체 후보에 공유 (10후보 기준 API 호출 90% 절감)
+- **Critic 라운드 기본값 축소**: `max_critic_rounds` 기본값 3→1로 변경 (UI에서 필요 시 증가 가능)
+- **Retriever 후보 풀 축소**: `ref_limit` 200→50으로 줄여 입력 토큰 75% 절감
+- **에이전트별 `max_output_tokens` 최적화**: 전 에이전트 50K 고정 → 실제 출력에 맞게 조정 (Retriever 8K, Planner/Critic/Stylist 20K, Visualizer(diagram) 8K, Visualizer(plot) 20K)
+
 ### 2026-03-02: 에이전트 프롬프트 전면 개선 및 Refine 베이스라인 품질 보장
 
 **Planner 프롬프트 강화** (AI 이미지 생성 모델의 빈발 오류 대응)

@@ -75,7 +75,7 @@ class VisualizerAgent(BaseAgent):
                 "task_name": "plot",
                 "use_image_generation": False,  # Use code generation instead
                 "prompt_template": "Use python matplotlib to generate a statistical plot based on the following detailed description: {desc}\n Only provide the code without any explanations. Code:",
-                "max_output_tokens": 50000,
+                "max_output_tokens": 20000,
             }
             # The code below is for applying image generation models to statistics plots:
             # self.model_name = self.exp_config.image_model_name
@@ -96,7 +96,7 @@ class VisualizerAgent(BaseAgent):
                 "task_name": "diagram",
                 "use_image_generation": True,  # Use direct image generation
                 "prompt_template": "Render an image based on the following detailed description: {desc}\n Note that do not include figure titles in the image. Diagram: ",
-                "max_output_tokens": 50000,
+                "max_output_tokens": 8192,
             }
 
     def __del__(self):

@@ -50,7 +50,7 @@ class RetrieverAgent(BaseAgent):
             self.system_prompt = DIAGRAM_RETRIEVER_AGENT_SYSTEM_PROMPT
             self.task_config = {
                 "task_name": "diagram",
-                "ref_limit": 200,  # Limit to first 200
+                "ref_limit": 50,  # Reduced from 200 to save input tokens
                 "target_labels": ["Caption", "Methodology section"],
                 "candidate_labels": ["Diagram ID", "Caption", "Methodology section"],
                 "candidate_type": "Diagram",
@@ -166,7 +166,7 @@ class RetrieverAgent(BaseAgent):
                 system_instruction=self.system_prompt,
                 temperature=self.exp_config.temperature,
                 candidate_count=1,
-                max_output_tokens=50000,
+                max_output_tokens=8192,
             ),
             max_attempts=5,
             retry_delay=30,

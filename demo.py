@@ -471,7 +471,7 @@ def main():
                 t("max_critic_rounds_label"),
                 min_value=1,
                 max_value=5,
-                value=3,
+                value=1,
                 key="tab1_max_critic_rounds",
                 help=t("max_critic_rounds_help")
             )

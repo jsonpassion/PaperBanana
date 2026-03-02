@@ -33,7 +33,7 @@ class ExpConfig:
     temperature: float = 1.0
     exp_mode: str = ""
     retrieval_setting: Literal["auto", "manual", "random", "none"] = "auto"
-    max_critic_rounds: int = 3
+    max_critic_rounds: int = 1
     diagram_language: str = "en"
     model_name: str = ""
     image_model_name: str = ""

@@ -110,38 +110,43 @@ class PaperVizProcessor:
         task_name = self.exp_config.task_name.lower()
         retrieval_setting = self.exp_config.retrieval_setting
 
+        # Skip retriever if already done (cached by process_queries_batch)
+        retriever_done = data.pop("_retriever_done", False)
+
         if exp_mode == "vanilla":
             data = await self.vanilla_agent.process(data)
             data["eval_image_field"] = f"vanilla_{task_name}_base64_jpg"
-        
+
         elif exp_mode == "dev_planner":
-            data = await self.retriever_agent.process(data, retrieval_setting=retrieval_setting)
+            if not retriever_done:
+                data = await self.retriever_agent.process(data, retrieval_setting=retrieval_setting)
             data = await self.planner_agent.process(data)
             data = await self.visualizer_agent.process(data)
             data["eval_image_field"] = f"target_{task_name}_desc0_base64_jpg"
-        
+
         elif exp_mode == "dev_planner_stylist":
-            data = await self.retriever_agent.process(data, retrieval_setting=retrieval_setting)
+            if not retriever_done:
+                data = await self.retriever_agent.process(data, retrieval_setting=retrieval_setting)
             data = await self.planner_agent.process(data)
             data = await self.stylist_agent.process(data)
             data = await self.visualizer_agent.process(data)
             data["eval_image_field"] = f"target_{task_name}_stylist_desc0_base64_jpg"
 
         elif exp_mode in ["dev_planner_critic", "demo_planner_critic"]:
-            data = await self.retriever_agent.process(data, retrieval_setting=retrieval_setting)
+            if not retriever_done:
+                data = await self.retriever_agent.process(data, retrieval_setting=retrieval_setting)
             data = await self.planner_agent.process(data)
             data = await self.visualizer_agent.process(data)
-            # Use max_critic_rounds from data if available, otherwise default to 3
-            max_rounds = data.get("max_critic_rounds", 3)
+            max_rounds = data.get("max_critic_rounds", 1)
             data = await self._run_critic_iterations(data, task_name, max_rounds=max_rounds, source="planner")
             if "demo" in exp_mode: do_eval = False
 
         elif exp_mode in ["dev_full", "demo_full"]:
-            data = await self.retriever_agent.process(data, retrieval_setting=retrieval_setting)
+            if not retriever_done:
+                data = await self.retriever_agent.process(data, retrieval_setting=retrieval_setting)
             data = await self.planner_agent.process(data)
             data = await self.stylist_agent.process(data)
             data = await self.visualizer_agent.process(data)
-            # Use max_critic_rounds from data (if set) or config
             max_rounds = data.get("max_critic_rounds", self.exp_config.max_critic_rounds)
             data = await self._run_critic_iterations(data, task_name, max_rounds=max_rounds, source="stylist")
             if "demo" in exp_mode: do_eval = False
@@ -170,8 +175,26 @@ class PaperVizProcessor:
         do_eval: bool = True,
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
-        Batch process queries with concurrency support
+        Batch process queries with concurrency support.
+        Retriever is called once and results are shared across all candidates.
         """
+        # Run retriever ONCE on the first item, then share results with all candidates
+        exp_mode = self.exp_config.exp_mode
+        retrieval_setting = self.exp_config.retrieval_setting
+        needs_retrieval = exp_mode not in ["vanilla", "dev_polish"]
+
+        if needs_retrieval and data_list:
+            print("[Optimizer] Running Retriever once and sharing results across all candidates...")
+            first_data = data_list[0]
+            first_data = await self.retriever_agent.process(first_data, retrieval_setting=retrieval_setting)
+            cached_refs = first_data.get("top10_references", [])
+            cached_examples = first_data.get("retrieved_examples", [])
+            # Copy retriever results to all candidates
+            for data in data_list:
+                data["top10_references"] = cached_refs
+                data["retrieved_examples"] = cached_examples
+                data["_retriever_done"] = True
+
         semaphore = asyncio.Semaphore(max_concurrent)
         async def process_with_semaphore(doc):
             async with semaphore:
