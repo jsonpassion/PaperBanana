@@ -16,7 +16,7 @@
 
 # Default Models
 defaults:
-  model_name: "" # e.g., "gemini-3.1-pro-preview"
+  model_name: "" # e.g., "gemini-3-flash-preview"
   image_model_name: "" # e.g., "gemini-3.1-flash-image-preview"
   lite_model_name: "" # e.g., "gemini-2.5-flash" — lightweight model for Smart Input
   

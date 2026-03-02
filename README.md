@@ -2,8 +2,9 @@
 
 ## 업데이트 및 개선 사항 (원본 PaperVizAgent 소스 대비)
 
-### 2026-03-02: API 안정성 개선
+### 2026-03-02: 메인 모델 교체 + API 안정성 개선
 
+- **메인 모델 교체**: `gemini-3.1-pro-preview` → `gemini-3-flash-preview` (RPD 250→10K, RPM 25→1K으로 할당량 40배 확대, limit:0 이슈 해소)
 - **Event loop 충돌 수정**: `asyncio.run()` → 매 호출마다 새 이벤트 루프를 생성하는 `run_async()` 헬퍼로 교체. 간편모드 → 후보 생성 순차 실행 시 "Event loop is closed" 에러 해결
 - **할당량 0 에러 UI 안내**: Google preview 모델의 간헐적 할당량 소진(`limit: 0`) 시, 웹 UI에 리셋 시간(KST 16:00~17:00) 및 확인 링크 안내 표시
 - 할당량 0 감지 시 즉시 실패 처리 — 불필요한 재시도 대기 제거
