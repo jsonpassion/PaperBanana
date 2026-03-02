@@ -67,8 +67,13 @@ async def generate_smart_input(brief_description: str, language: str = "en") -> 
 
     content_list = [{"type": "text", "text": user_prompt}]
 
+    # Use lightweight model for Smart Input (cheaper, higher quota)
+    lite_model = generation_utils.get_config_val("defaults", "lite_model_name", "LITE_MODEL_NAME", "")
+    if not lite_model:
+        lite_model = generation_utils.get_config_val("defaults", "model_name", "MODEL_NAME", "")
+
     response_list = await generation_utils.call_gemini_with_retry_async(
-        model_name=generation_utils.get_config_val("defaults", "model_name", "MODEL_NAME", ""),
+        model_name=lite_model,
         contents=content_list,
         config=types.GenerateContentConfig(
             system_instruction=system_prompt,
