@@ -386,7 +386,7 @@ def display_candidate_result(result, candidate_id, exp_mode):
     if final_image_key and final_image_key in result:
         img = base64_to_image(result[final_image_key])
         if img:
-            st.image(img, use_container_width=True, caption=t("candidate_caption", id=candidate_id))
+            st.image(img, width="stretch", caption=t("candidate_caption", id=candidate_id))
 
             # Add download button
             buffered = BytesIO()
@@ -397,7 +397,7 @@ def display_candidate_result(result, candidate_id, exp_mode):
                 file_name=f"candidate_{candidate_id}.png",
                 mime="image/png",
                 key=f"download_candidate_{candidate_id}",
-                use_container_width=True
+                width="stretch"
             )
         else:
             st.error(t("error_decode", id=candidate_id))
@@ -417,7 +417,7 @@ def display_candidate_result(result, candidate_id, exp_mode):
                 # Display the image for this stage
                 stage_img = base64_to_image(result.get(stage['image_key']))
                 if stage_img:
-                    st.image(stage_img, use_container_width=True)
+                    st.image(stage_img, width="stretch")
                 
                 # Show description
                 if stage['desc_key'] in result:
@@ -595,7 +595,7 @@ def main():
                 placeholder=t("simple_mode_placeholder"),
                 key="simple_desc_input",
             )
-            if st.button(t("simple_mode_generate_button"), key="simple_gen_btn", type="primary", use_container_width=True):
+            if st.button(t("simple_mode_generate_button"), key="simple_gen_btn", type="primary", width="stretch"):
                 if simple_desc.strip():
                     with st.spinner(t("simple_mode_spinner")):
                         try:
@@ -692,7 +692,7 @@ def main():
             )
         
         # Process button
-        if st.button(t("generate_button"), type="primary", use_container_width=True):
+        if st.button(t("generate_button"), type="primary", width="stretch"):
             if not method_content or not caption:
                 st.error(t("error_missing_input"))
             else:
@@ -795,7 +795,7 @@ def main():
                             data=json_data,
                             file_name=json_file_path.name,
                             mime="application/json",
-                            use_container_width=True
+                            width="stretch"
                         )
             
             # Display results in a grid (3 columns)
@@ -856,7 +856,7 @@ def main():
                     data=zip_buffer.getvalue(),
                     file_name=f"papervizagent_candidates_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
                     mime="application/zip",
-                    use_container_width=True
+                    width="stretch"
                 )
                 st.success(t("zip_ready"))
             except Exception as e:
@@ -903,7 +903,7 @@ def main():
             
             with col1:
                 st.markdown(t("original_image"))
-                st.image(uploaded_image, use_container_width=True)
+                st.image(uploaded_image, width="stretch")
 
             with col2:
                 st.markdown(t("edit_instructions"))
@@ -959,7 +959,7 @@ def main():
                 parts = [p for p in [base_quality, preset_value, additional_prompt.strip()] if p]
                 final_prompt = "\n\n".join(parts)
 
-                if st.button(t("refine_button"), type="primary", use_container_width=True):
+                if st.button(t("refine_button"), type="primary", width="stretch"):
                     if not final_prompt:
                         st.error(t("error_no_edit_prompt"))
                     else:
@@ -1020,12 +1020,12 @@ def main():
                 
                 with col1:
                     st.markdown(t("before_label"))
-                    st.image(uploaded_image, use_container_width=True)
+                    st.image(uploaded_image, width="stretch")
 
                 with col2:
                     st.markdown(t("after_label", resolution=refine_resolution))
                     refined_image = Image.open(BytesIO(st.session_state["refined_image"]))
-                    st.image(refined_image, use_container_width=True)
+                    st.image(refined_image, width="stretch")
 
                     # Download button
                     st.download_button(
@@ -1033,7 +1033,7 @@ def main():
                         data=st.session_state["refined_image"],
                         file_name=f"refined_{refine_resolution}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
                         mime="image/png",
-                        use_container_width=True
+                        width="stretch"
                     )
 
 if __name__ == "__main__":
