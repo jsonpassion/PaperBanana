@@ -220,28 +220,20 @@ async def _analyze_image_for_corrections(client, image_bytes, edit_prompt, model
     _report("analyze", model=model_name)
 
     analysis_prompt = (
-        "You are an image quality analyst. Examine this image thoroughly "
-        "and list specific corrections.\n\n"
-        "CHECK THESE — from large-scale structure down to details:\n\n"
-        "1. DUPLICATE SECTIONS: Are any entire panels/sections repeated? "
-        "Two panels with the same title or nearly identical content = duplication. "
-        "Specify which to keep and which to replace with different content or remove.\n\n"
-        "2. CONTENT-VISUAL MISMATCH: For each section, does the visual content "
-        "(charts, icons, illustrations) correctly represent what the section title "
-        "describes? If a graphic doesn't match its label, describe what's wrong "
-        "and what it should look like.\n\n"
-        "3. INCOMPLETE SECTIONS: Is any section missing key information that its "
-        "title implies? Missing axis labels, missing data series, missing legends, "
-        "or missing sub-components that should be there.\n\n"
-        "4. DUPLICATE LABELS: Any text appearing more than once where it shouldn't?\n\n"
-        "5. NONSENSICAL TEXT: Any garbled or contextually meaningless text?\n\n"
-        "6. VISUAL BALANCE: Any component taking disproportionate space?\n\n"
-        "7. ARROWS/OVERLAPS: Disconnected connectors or overflowing text?\n\n"
+        "You are an image quality analyst. Examine this image and list "
+        "specific corrections the image editor can realistically apply.\n\n"
+        "CHECK:\n"
+        "1. DUPLICATE LABELS: Any text appearing more than once where it shouldn't? "
+        "Specify which to keep and which to rename.\n"
+        "2. NONSENSICAL TEXT: Any garbled, gibberish, or contextually wrong text? "
+        "Suggest the correct replacement.\n"
+        "3. ARROWS: Any disconnected or illogical connectors?\n"
+        "4. OVERLAPS: Any text overflowing boundaries or overlapping other elements?\n\n"
         f"USER'S EDIT REQUEST:\n{edit_prompt}\n\n"
-        "OUTPUT: ONLY a numbered list of concrete corrections.\n"
-        "Be specific about locations (e.g. 'top-right panel', 'bottom-left section').\n"
+        "OUTPUT: ONLY a numbered list of concrete corrections with locations.\n"
         "If no corrections needed: \"NO CORRECTIONS NEEDED\"\n"
-        "Max 12 items."
+        "Max 8 items. Only list problems the image editor can fix by redrawing text, "
+        "labels, or connectors — do NOT request layout restructuring or content generation."
     )
 
     contents = [
@@ -315,26 +307,23 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
 
         # ── Phase 2: Apply corrections with image model ──
         # Corrections FIRST (highest priority), then rules, then user instructions
+        baseline = (
+            "Refine this diagram. Keep the same layout and structure.\n"
+            "- Make ALL text razor-sharp and legible. Fix garbled or nonsensical text.\n"
+            "- Fix duplicate labels — each label must be unique and accurate.\n"
+            "- Arrows must connect clearly from source to destination.\n"
+            "- Text must not overflow its containing box or overlap other elements.\n"
+            "- Do NOT add new components. Do NOT add figure captions.\n"
+        )
+
         if n_corrections > 0:
             full_prompt = (
-                "MANDATORY FIXES — you MUST apply all of these:\n\n"
-                f"{analysis_text}\n\n"
-                "For duplicate sections: replace the duplicate with the correct "
-                "unique content, or merge it into the remaining section.\n"
-                "For content mismatches: redraw the visual to correctly represent "
-                "what the section title describes.\n"
-                "For incomplete sections: add the missing information.\n\n"
-                "ALSO: Make all text sharp. Arrows connect clearly. "
-                "Text stays within boundaries.\n\n"
-                f"USER INSTRUCTIONS:\n{edit_prompt}"
-            )
-        else:
-            full_prompt = (
-                "Refine this image. Keep the same layout and structure.\n"
-                "Make all text sharp. Arrows connect clearly. "
-                "Text stays within boundaries.\n\n"
+                f"{baseline}\n"
+                f"CORRECTIONS (from analysis):\n{analysis_text}\n\n"
                 f"EDIT INSTRUCTIONS:\n{edit_prompt}"
             )
+        else:
+            full_prompt = f"{baseline}\nEDIT INSTRUCTIONS:\n{edit_prompt}"
 
         contents = [
             types.Part.from_text(text=full_prompt),

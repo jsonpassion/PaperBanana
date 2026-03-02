@@ -152,8 +152,8 @@ TRANSLATIONS = {
         "after_label": "### After ({resolution})",
         "download_refined": "⬇️ Download {resolution} Image",
 
-        # Refine – Base quality rules (always applied to every preset)
-        "preset_base_quality": "Always apply: Make all text sharp and legible. Fix any duplicate or nonsensical labels. Ensure arrows connect clearly. Balance element sizes proportionally. Keep text within boundaries.",
+        # Refine – Base quality rules (now handled in refine_image_with_nanoviz baseline)
+        "preset_base_quality": "",
 
         # Refine – Preset prompts
         "preset_label": "Quick Edit Presets",
@@ -368,8 +368,8 @@ TRANSLATIONS = {
         "after_label": "### 이후 ({resolution})",
         "download_refined": "⬇️ {resolution} 이미지 다운로드",
 
-        # Refine – Base quality rules (always applied — use English for better model output)
-        "preset_base_quality": "Always apply: Make all text sharp and legible. Fix any duplicate or nonsensical labels. Ensure arrows connect clearly. Balance element sizes proportionally. Keep text within boundaries.",
+        # Refine – Base quality rules (now handled in refine_image_with_nanoviz baseline)
+        "preset_base_quality": "",
 
         # Refine – Preset prompts (labels in Korean, prompts in English for quality)
         "preset_label": "빠른 편집 프리셋",
