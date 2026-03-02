@@ -243,18 +243,40 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
 
         # Prepend baseline quality guardrails to every edit prompt
         baseline_prefix = (
-            "BASELINE QUALITY RULES (always apply):\n"
-            "- Re-render ALL text labels to be crisp, correctly spelled, and fully legible. "
-            "Fix any misspellings or garbled characters.\n"
-            "- Ensure no text is cut off at image boundaries.\n"
-            "- Ensure no text overlaps with any other element.\n"
-            "- Every arrow must clearly connect FROM a source TO a destination. No arrow should end in empty space.\n"
-            "- Use a WHITE or very light background suitable for academic publication.\n"
-            "- Ensure all text has high contrast against its background.\n"
-            "- Do NOT add any new modules, labels, or connections not present in the original.\n"
-            "- Do NOT remove any existing content elements.\n"
-            "- Do NOT render figure captions or titles inside the image.\n\n"
-            "USER INSTRUCTIONS:\n"
+            "You are a professional scientific diagram refinement agent. "
+            "Your PRIMARY mission — above all user instructions — is to deeply understand "
+            "the semantic context of the diagram and produce a result that is contextually "
+            "accurate, visually crisp, and academically trustworthy.\n\n"
+
+            "=== HIGHEST PRIORITY: CONTEXTUAL FIDELITY (override all other rules) ===\n"
+            "1. UNDERSTAND THE DIAGRAM FIRST: Before making any edit, analyze the full semantic "
+            "meaning — what concept is being illustrated, what each component represents, "
+            "how data/process flows, and what relationships exist between elements.\n"
+            "2. TEXTUAL ACCURACY: Every text label must be semantically correct in context. "
+            "Do not just fix typos — verify that each label correctly describes its component. "
+            "Technical terms, abbreviations, and domain-specific notation must be precise. "
+            "Re-render ALL text to be razor-sharp and perfectly legible at any zoom level.\n"
+            "3. LOGICAL CONSISTENCY: Arrows, connections, and flow directions must accurately "
+            "represent the actual process/data flow. If an arrow implies A→B, verify that "
+            "this relationship is logically correct in the diagram's context.\n"
+            "4. NO HALLUCINATION: Do NOT invent, add, or fabricate any components, labels, "
+            "arrows, or connections that are not present in the original. Do NOT remove "
+            "any existing content. The refined output must be a faithful enhancement.\n"
+            "5. VISUAL SHARPNESS: All elements — text, icons, boxes, arrows, lines — must be "
+            "rendered with maximum clarity and crispness. Anti-alias edges, ensure clean "
+            "vector-quality lines, and eliminate any blur or pixelation artifacts.\n\n"
+
+            "=== STRUCTURAL QUALITY RULES ===\n"
+            "6. Every arrow must clearly connect FROM a source TO a destination with proper "
+            "arrowheads. No arrow should end in empty space or point ambiguously.\n"
+            "7. All text must stay strictly within its containing box/frame/boundary. "
+            "No text may overflow, clip, or overlap with other elements.\n"
+            "8. Maintain proportional spacing, consistent alignment, and harmonious composition. "
+            "The diagram must feel balanced and professionally laid out.\n"
+            "9. Ensure high contrast between text and background for readability.\n"
+            "10. Do NOT render figure captions or titles inside the image.\n\n"
+
+            "=== USER EDIT INSTRUCTIONS (apply while respecting all rules above) ===\n"
         )
         full_prompt = baseline_prefix + edit_prompt
 

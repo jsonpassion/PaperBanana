@@ -151,7 +151,7 @@ TRANSLATIONS = {
         "download_refined": "⬇️ Download {resolution} Image",
 
         # Refine – Base quality rules (always applied to every preset)
-        "preset_base_quality": "[MANDATORY QUALITY RULES — apply to ALL edits]\n1. Arrows & connectors: ensure all arrows have consistent line weights, clear arrowheads, smooth curves, and obvious flow direction. Remove any crossing or tangled arrows where possible.\n2. Boundary respect: all text labels, annotations, and captions must stay strictly within their containing boxes, frames, or boundaries. No text may overflow or clip outside its container.\n3. Visual balance: maintain proportional spacing between all components, consistent alignment, and a harmonious overall composition. The diagram should feel balanced and professionally laid out.\n4. Text clarity: all text must be fully legible, properly rendered (no garbled characters), and sized appropriately for its context.",
+        "preset_base_quality": "[ADDITIONAL QUALITY EMPHASIS]\n- Re-render every text label razor-sharp: fix garbled characters, ensure correct technical terminology, and maximize legibility.\n- Verify all arrows and connectors accurately represent the logical flow — consistent weights, clear arrowheads, no ambiguous endpoints.\n- Keep all text strictly within its container boundaries. Maintain balanced spacing and professional alignment throughout.",
 
         # Refine – Preset prompts
         "preset_label": "Quick Edit Presets",
@@ -365,7 +365,7 @@ TRANSLATIONS = {
         "download_refined": "⬇️ {resolution} 이미지 다운로드",
 
         # Refine – Base quality rules (always applied — use English for better model output)
-        "preset_base_quality": "[MANDATORY QUALITY RULES — apply to ALL edits]\n1. Arrows & connectors: ensure all arrows have consistent line weights, clear arrowheads, smooth curves, and obvious flow direction. Remove any crossing or tangled arrows where possible.\n2. Boundary respect: all text labels, annotations, and captions must stay strictly within their containing boxes, frames, or boundaries. No text may overflow or clip outside its container.\n3. Visual balance: maintain proportional spacing between all components, consistent alignment, and a harmonious overall composition. The diagram should feel balanced and professionally laid out.\n4. Text clarity: all text must be fully legible, properly rendered (no garbled characters), and sized appropriately for its context.",
+        "preset_base_quality": "[ADDITIONAL QUALITY EMPHASIS]\n- Re-render every text label razor-sharp: fix garbled characters, ensure correct technical terminology, and maximize legibility.\n- Verify all arrows and connectors accurately represent the logical flow — consistent weights, clear arrowheads, no ambiguous endpoints.\n- Keep all text strictly within its container boundaries. Maintain balanced spacing and professional alignment throughout.",
 
         # Refine – Preset prompts (labels in Korean, prompts in English for quality)
         "preset_label": "빠른 편집 프리셋",
