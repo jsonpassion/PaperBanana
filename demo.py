@@ -30,7 +30,7 @@ import os
 from datetime import datetime
 
 from translations import TRANSLATIONS
-from example_templates import EXAMPLE_TEMPLATES
+from example_templates import EXAMPLE_TEMPLATES, EXAMPLE_DISPLAY_NAMES_KO
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -534,10 +534,10 @@ def main():
         # Input section
         st.markdown(t("input_header"))
 
-        # Input mode selection
+        # Input mode selection (Simple Mode first as default)
         input_mode = st.radio(
             t("input_mode_label"),
-            [t("input_mode_direct"), t("input_mode_simple"), t("input_mode_template")],
+            [t("input_mode_simple"), t("input_mode_direct"), t("input_mode_template")],
             index=0,
             horizontal=True,
             key="input_mode",
@@ -600,23 +600,35 @@ def main():
                     st.error(t("template_mode_empty_error"))
 
         # ── Direct Input (always shown — acts as the editable text areas) ──
-        # Example template names for the dropdown
-        example_names = [t("example_none")] + list(EXAMPLE_TEMPLATES.keys())
+        # Unified example selector: one dropdown populates both method and caption
+        example_keys = list(EXAMPLE_TEMPLATES.keys())
+        lang = st.session_state.get("language", "ko")
+
+        def _example_display(name):
+            if name == t("example_none"):
+                return name
+            if lang == "ko":
+                return EXAMPLE_DISPLAY_NAMES_KO.get(name, name)
+            return name
+
+        example_names = [t("example_none")] + example_keys
+        selected_example = st.selectbox(
+            t("example_selector_label"),
+            example_names,
+            key="example_selector",
+            format_func=_example_display,
+        )
+
+        if selected_example != t("example_none") and selected_example in EXAMPLE_TEMPLATES:
+            method_value = EXAMPLE_TEMPLATES[selected_example]["method"]
+            caption_value = EXAMPLE_TEMPLATES[selected_example]["caption"]
+        else:
+            method_value = st.session_state.get("method_content", "")
+            caption_value = st.session_state.get("caption", "")
 
         col_input1, col_input2 = st.columns([3, 2])
 
         with col_input1:
-            method_example = st.selectbox(
-                t("load_example_method"),
-                example_names,
-                key="method_example_selector",
-            )
-
-            if method_example != t("example_none") and method_example in EXAMPLE_TEMPLATES:
-                method_value = EXAMPLE_TEMPLATES[method_example]["method"]
-            else:
-                method_value = st.session_state.get("method_content", "")
-
             method_content = st.text_area(
                 t("method_content_label"),
                 value=method_value,
@@ -626,17 +638,6 @@ def main():
             )
 
         with col_input2:
-            caption_example = st.selectbox(
-                t("load_example_caption"),
-                example_names,
-                key="caption_example_selector",
-            )
-
-            if caption_example != t("example_none") and caption_example in EXAMPLE_TEMPLATES:
-                caption_value = EXAMPLE_TEMPLATES[caption_example]["caption"]
-            else:
-                caption_value = st.session_state.get("caption", "")
-
             caption = st.text_area(
                 t("caption_label"),
                 value=caption_value,

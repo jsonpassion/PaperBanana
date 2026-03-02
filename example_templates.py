@@ -17,6 +17,14 @@ Example templates for PaperVizAgent Demo UI.
 Each template contains a method section and caption for diagram generation.
 """
 
+# Korean display names for example templates (keyed by English name)
+EXAMPLE_DISPLAY_NAMES_KO = {
+    "PaperVizAgent Framework": "PaperVizAgent 프레임워크",
+    "Transformer Architecture": "Transformer 아키텍처",
+    "RAG Pipeline": "RAG 파이프라인",
+    "Training Pipeline (Encoder-Decoder)": "학습 파이프라인 (인코더-디코더)",
+}
+
 EXAMPLE_TEMPLATES = {
     "PaperVizAgent Framework": {
         "method": r"""## Methodology: The PaperVizAgent Framework

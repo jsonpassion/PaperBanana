@@ -166,6 +166,7 @@ TRANSLATIONS = {
 
         # Example template selector (Phase 1)
         "example_none": "None",
+        "example_selector_label": "Load Example",
 
         # Input mode (Phase 3)
         "input_mode_label": "Input Mode",
@@ -177,7 +178,7 @@ TRANSLATIONS = {
         # Simple mode (Phase 3)
         "simple_mode_caption": "Describe your diagram idea briefly. AI will generate a structured method section and caption for you.",
         "simple_mode_input_label": "Describe the diagram you want to create",
-        "simple_mode_placeholder": "e.g., A pipeline diagram showing how a RAG system retrieves documents, re-ranks them, and generates answers",
+        "simple_mode_placeholder": "e.g., A pipeline diagram showing how a RAG system retrieves documents, re-ranks them, and generates answers\ne.g., A system architecture diagram for a microservices-based e-commerce platform",
         "simple_mode_generate_button": "🤖 Generate Structured Input",
         "simple_mode_spinner": "Generating structured method section and caption...",
         "simple_mode_empty_error": "Please enter a description first!",
@@ -338,6 +339,7 @@ TRANSLATIONS = {
 
         # Example template selector (Phase 1)
         "example_none": "없음",
+        "example_selector_label": "예시 불러오기",
 
         # Input mode (Phase 3)
         "input_mode_label": "입력 모드",
@@ -349,7 +351,7 @@ TRANSLATIONS = {
         # Simple mode (Phase 3)
         "simple_mode_caption": "다이어그램 아이디어를 간단히 설명하세요. AI가 구조화된 방법론 섹션과 캡션을 생성합니다.",
         "simple_mode_input_label": "만들고 싶은 다이어그램을 설명하세요",
-        "simple_mode_placeholder": "예: RAG 시스템이 문서를 검색하고 재순위 지정한 후 답변을 생성하는 파이프라인 다이어그램",
+        "simple_mode_placeholder": "예: RAG 시스템이 문서를 검색하고 재순위 지정한 후 답변을 생성하는 파이프라인 다이어그램\n예: 마이크로서비스 기반 이커머스 플랫폼의 시스템 아키텍처 다이어그램",
         "simple_mode_generate_button": "🤖 구조화된 입력 생성",
         "simple_mode_spinner": "구조화된 방법론 섹션과 캡션 생성 중...",
         "simple_mode_empty_error": "먼저 설명을 입력해주세요!",

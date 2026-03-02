@@ -22,9 +22,9 @@ from utils import generation_utils
 from google.genai import types
 
 
-SMART_INPUT_SYSTEM_PROMPT = """You are an expert academic writing assistant. Given a brief, informal description of a diagram the user wants to create, you must produce two outputs:
+SMART_INPUT_SYSTEM_PROMPT = """You are an expert technical writing assistant. Given a brief, informal description of a diagram the user wants to create, you must produce two outputs:
 
-1. **METHOD_SECTION**: A detailed methodology section (in Markdown) describing the system, pipeline, or architecture. Write it as if it were part of an academic paper. Include component names, data flow, and relationships. Use subsections (###) for major components.
+1. **METHOD_SECTION**: A detailed description (in Markdown) of the system, pipeline, architecture, or concept being illustrated. Include component names, data flow, and relationships. Use subsections (###) for major components. Write clearly and precisely as if explaining for a technical document or academic paper.
 
 2. **CAPTION**: A single-sentence figure caption starting with "Figure 1:" that summarizes what the diagram shows.
 
@@ -36,9 +36,9 @@ Format your response EXACTLY as follows (use these exact delimiters):
 ===END===
 """
 
-SMART_INPUT_SYSTEM_PROMPT_KO = """You are an expert academic writing assistant. Given a brief, informal description of a diagram the user wants to create, you must produce two outputs IN KOREAN (한국어):
+SMART_INPUT_SYSTEM_PROMPT_KO = """You are an expert technical writing assistant. Given a brief, informal description of a diagram the user wants to create, you must produce two outputs IN KOREAN (한국어):
 
-1. **METHOD_SECTION**: A detailed methodology section (in Markdown) describing the system, pipeline, or architecture. Write it as if it were part of an academic paper. Include component names, data flow, and relationships. Use subsections (###) for major components. Write entirely in Korean except for technical terms and mathematical notation.
+1. **METHOD_SECTION**: A detailed description (in Markdown) of the system, pipeline, architecture, or concept being illustrated. Include component names, data flow, and relationships. Use subsections (###) for major components. Write entirely in Korean except for technical terms and mathematical notation.
 
 2. **CAPTION**: A single-sentence figure caption starting with "Figure 1:" that summarizes what the diagram shows, written in Korean.
 
@@ -67,28 +67,42 @@ async def generate_smart_input(brief_description: str, language: str = "en") -> 
 
     content_list = [{"type": "text", "text": user_prompt}]
 
-    # Use lightweight model for Smart Input (cheaper, higher quota)
-    lite_model = generation_utils.get_config_val("defaults", "lite_model_name", "LITE_MODEL_NAME", "")
-    if not lite_model:
-        lite_model = generation_utils.get_config_val("defaults", "model_name", "MODEL_NAME", "")
-
-    response_list = await generation_utils.call_gemini_with_retry_async(
-        model_name=lite_model,
-        contents=content_list,
-        config=types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            temperature=0.7,
-            candidate_count=1,
-            max_output_tokens=8192,
-        ),
-        max_attempts=5,
-        retry_delay=10,
+    gen_config = types.GenerateContentConfig(
+        system_instruction=system_prompt,
+        temperature=0.7,
+        candidate_count=1,
+        max_output_tokens=8192,
     )
 
-    raw = response_list[0] if response_list else ""
-    if raw == "Error" or not raw.strip():
-        raise RuntimeError("API call failed after all retries. The model may be temporarily unavailable.")
-    return _parse_smart_input_response(raw)
+    # Build ordered list of models to try: lite first, then main as fallback
+    lite_model = generation_utils.get_config_val("defaults", "lite_model_name", "LITE_MODEL_NAME", "")
+    main_model = generation_utils.get_config_val("defaults", "model_name", "MODEL_NAME", "")
+    models_to_try = [m for m in [lite_model, main_model] if m]
+
+    if not models_to_try:
+        raise RuntimeError("No model configured. Set lite_model_name or model_name in configs/model_config.yaml.")
+
+    last_error = None
+    for model_name in models_to_try:
+        try:
+            response_list = await generation_utils.call_gemini_with_retry_async(
+                model_name=model_name,
+                contents=content_list,
+                config=gen_config,
+                max_attempts=3,
+                retry_delay=5,
+            )
+            raw = response_list[0] if response_list else ""
+            if raw and raw != "Error" and raw.strip():
+                return _parse_smart_input_response(raw)
+        except Exception as e:
+            last_error = e
+            print(f"[Smart Input] Model '{model_name}' failed: {e}. Trying next model...")
+            continue
+
+    raise RuntimeError(
+        f"All models failed for Smart Input. Last error: {last_error}"
+    )
 
 
 def _parse_smart_input_response(raw: str) -> dict:
