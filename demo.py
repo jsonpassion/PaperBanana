@@ -913,43 +913,47 @@ def main():
             with col2:
                 st.markdown(t("edit_instructions"))
 
-                # Preset prompt dropdown
-                preset_options = {
-                    t("preset_none"): "",
-                    t("preset_upscale"): t("preset_upscale_prompt"),
-                    t("preset_fix_text"): t("preset_fix_text_prompt"),
-                    t("preset_bolder_text"): t("preset_bolder_text_prompt"),
-                    t("preset_text_to_english"): t("preset_text_to_english_prompt"),
-                    t("preset_text_to_korean"): t("preset_text_to_korean_prompt"),
-                    t("preset_academic_style"): t("preset_academic_style_prompt"),
-                    t("preset_dark_mode"): t("preset_dark_mode_prompt"),
-                    t("preset_flat_design"): t("preset_flat_design_prompt"),
-                    t("preset_colorful"): t("preset_colorful_prompt"),
-                    t("preset_simplify"): t("preset_simplify_prompt"),
-                    t("preset_add_numbers"): t("preset_add_numbers_prompt"),
-                    t("preset_improve_arrows"): t("preset_improve_arrows_prompt"),
-                    t("preset_improve_contrast"): t("preset_improve_contrast_prompt"),
-                    t("preset_white_bg"): t("preset_white_bg_prompt"),
-                    t("preset_add_border"): t("preset_add_border_prompt"),
-                }
-                selected_preset = st.selectbox(
-                    t("preset_label"),
-                    list(preset_options.keys()),
-                    key="refine_preset",
-                    help=t("preset_help"),
-                )
-                preset_value = preset_options.get(selected_preset, "")
+                # Preset checkboxes (multi-select)
+                preset_items = [
+                    ("preset_upscale", "preset_upscale_prompt"),
+                    ("preset_fix_text", "preset_fix_text_prompt"),
+                    ("preset_bolder_text", "preset_bolder_text_prompt"),
+                    ("preset_text_to_english", "preset_text_to_english_prompt"),
+                    ("preset_text_to_korean", "preset_text_to_korean_prompt"),
+                    ("preset_academic_style", "preset_academic_style_prompt"),
+                    ("preset_dark_mode", "preset_dark_mode_prompt"),
+                    ("preset_flat_design", "preset_flat_design_prompt"),
+                    ("preset_colorful", "preset_colorful_prompt"),
+                    ("preset_simplify", "preset_simplify_prompt"),
+                    ("preset_add_numbers", "preset_add_numbers_prompt"),
+                    ("preset_improve_arrows", "preset_improve_arrows_prompt"),
+                    ("preset_improve_contrast", "preset_improve_contrast_prompt"),
+                    ("preset_white_bg", "preset_white_bg_prompt"),
+                    ("preset_add_border", "preset_add_border_prompt"),
+                ]
 
-                # Show selected preset details (scrollable, no background)
-                if preset_value:
+                with st.expander(t("preset_label"), expanded=False):
+                    st.caption(t("preset_help"))
+                    selected_prompts = []
+                    selected_labels = []
+                    for label_key, prompt_key in preset_items:
+                        if st.checkbox(t(label_key), key=f"preset_cb_{label_key}"):
+                            selected_prompts.append(t(prompt_key))
+                            selected_labels.append(t(label_key))
+
+                # Show selected presets summary
+                if selected_labels:
+                    summary = " / ".join(selected_labels)
                     st.markdown(
                         f'<div style="border-left:3px solid #ccc;'
                         f'padding:8px 12px;margin:8px 0;'
-                        f'max-height:120px;overflow-y:auto;font-size:0.85em;'
+                        f'max-height:100px;overflow-y:auto;font-size:0.85em;'
                         f'color:#555;line-height:1.4;">'
-                        f'<strong>{selected_preset}</strong><br>{preset_value}</div>',
+                        f'{summary}</div>',
                         unsafe_allow_html=True,
                     )
+
+                preset_combined = "\n\n".join(selected_prompts)
 
                 additional_prompt = st.text_area(
                     t("additional_prompt_label"),
@@ -959,9 +963,9 @@ def main():
                     key="additional_edit_prompt"
                 )
 
-                # Combine: base quality rules + preset + user additional text
+                # Combine: base quality rules + selected presets + user additional text
                 base_quality = t("preset_base_quality")
-                parts = [p for p in [base_quality, preset_value, additional_prompt.strip()] if p]
+                parts = [p for p in [base_quality, preset_combined, additional_prompt.strip()] if p]
                 final_prompt = "\n\n".join(parts)
 
                 if st.button(t("refine_button"), type="primary", width="stretch"):
