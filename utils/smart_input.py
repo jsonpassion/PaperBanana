@@ -95,6 +95,9 @@ async def generate_smart_input(brief_description: str, language: str = "en") -> 
             raw = response_list[0] if response_list else ""
             if raw and raw != "Error" and raw.strip():
                 return _parse_smart_input_response(raw)
+            # Model returned "Error" string — API call failed silently
+            last_error = RuntimeError(f"Model '{model_name}' returned empty or error response")
+            print(f"[Smart Input] {last_error}. Trying next model...")
         except Exception as e:
             last_error = e
             print(f"[Smart Input] Model '{model_name}' failed: {e}. Trying next model...")
