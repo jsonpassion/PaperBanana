@@ -241,54 +241,18 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
 
         client = genai.Client(api_key=api_key)
 
-        # Prepend baseline quality guardrails to every edit prompt
+        # Prepend concise baseline quality guardrails
         baseline_prefix = (
-            "You are a professional scientific diagram refinement agent. "
-            "Your PRIMARY mission — above all user instructions — is to deeply understand "
-            "the semantic context of the diagram and produce a result that is contextually "
-            "accurate, visually crisp, and academically trustworthy.\n\n"
-
-            "=== HIGHEST PRIORITY: CONTEXTUAL FIDELITY (override all other rules) ===\n"
-            "1. UNDERSTAND THE DIAGRAM FIRST: Before making any edit, analyze the full semantic "
-            "meaning — what concept is being illustrated, what each component represents, "
-            "how data/process flows, and what relationships exist between elements.\n"
-            "2. TEXTUAL ACCURACY & CORRECTION: Every text label must be semantically correct "
-            "in its context. Go beyond simple typo fixes:\n"
-            "   - If a label is NONSENSICAL, GARBLED, or MEANINGLESS in context (e.g. random "
-            "characters, encoding artifacts, machine-generated gibberish that doesn't belong), "
-            "REPLACE it with the contextually correct term based on your understanding of "
-            "the diagram's subject matter.\n"
-            "   - If a label is DUPLICATED where it shouldn't be (e.g. the same term appears "
-            "as both an axis label and a data label in the same chart when they should differ), "
-            "correct the duplicate to the appropriate distinct label.\n"
-            "   - If axis labels, graph annotations, or chart legends contain text that does "
-            "not match the data being shown, fix them to accurately describe the content.\n"
-            "   - Technical terms, abbreviations, and domain-specific notation must be precise.\n"
-            "   - Re-render ALL text to be razor-sharp and perfectly legible at any zoom level.\n"
-            "3. LOGICAL CONSISTENCY: Arrows, connections, and flow directions must accurately "
-            "represent the actual process/data flow. If an arrow implies A→B, verify that "
-            "this relationship is logically correct in the diagram's context.\n"
-            "4. SMART PRESERVATION: Faithfully preserve all meaningful content from the original. "
-            "However, you MUST fix or replace content that is clearly erroneous:\n"
-            "   - Remove or replace nonsensical text that has no meaning in context.\n"
-            "   - Fix mislabeled axes, incorrect graph annotations, or wrong legend entries.\n"
-            "   - Do NOT invent entirely new components, sections, or concepts not present "
-            "in the original — but DO correct labels to match what the component actually represents.\n"
-            "5. VISUAL SHARPNESS: All elements — text, icons, boxes, arrows, lines — must be "
-            "rendered with maximum clarity and crispness. Anti-alias edges, ensure clean "
-            "vector-quality lines, and eliminate any blur or pixelation artifacts.\n\n"
-
-            "=== STRUCTURAL QUALITY RULES ===\n"
-            "6. Every arrow must clearly connect FROM a source TO a destination with proper "
-            "arrowheads. No arrow should end in empty space or point ambiguously.\n"
-            "7. All text must stay strictly within its containing box/frame/boundary. "
-            "No text may overflow, clip, or overlap with other elements.\n"
-            "8. Maintain proportional spacing, consistent alignment, and harmonious composition. "
-            "The diagram must feel balanced and professionally laid out.\n"
-            "9. Ensure high contrast between text and background for readability.\n"
-            "10. Do NOT render figure captions or titles inside the image.\n\n"
-
-            "=== USER EDIT INSTRUCTIONS (apply while respecting all rules above) ===\n"
+            "Refine this scientific diagram. Keep the same layout and structure.\n\n"
+            "RULES:\n"
+            "- Make ALL text razor-sharp and legible. Fix any garbled or nonsensical text "
+            "by replacing it with the correct term for that context.\n"
+            "- Fix duplicate labels — each label must be unique and accurate for its position.\n"
+            "- Arrows must connect clearly from source to destination. No loose endpoints.\n"
+            "- Text must not overflow its containing box or overlap other elements.\n"
+            "- Do NOT add new components that aren't in the original.\n"
+            "- Do NOT add figure captions or titles.\n\n"
+            "EDIT INSTRUCTIONS:\n"
         )
         full_prompt = baseline_prefix + edit_prompt
 

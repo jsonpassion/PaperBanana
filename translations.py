@@ -151,7 +151,7 @@ TRANSLATIONS = {
         "download_refined": "⬇️ Download {resolution} Image",
 
         # Refine – Base quality rules (always applied to every preset)
-        "preset_base_quality": "[ADDITIONAL QUALITY EMPHASIS]\n- Re-render every text label razor-sharp: fix garbled characters, ensure correct technical terminology, and maximize legibility.\n- Verify all arrows and connectors accurately represent the logical flow — consistent weights, clear arrowheads, no ambiguous endpoints.\n- Keep all text strictly within its container boundaries. Maintain balanced spacing and professional alignment throughout.",
+        "preset_base_quality": "",
 
         # Refine – Preset prompts
         "preset_label": "Quick Edit Presets",
@@ -365,7 +365,7 @@ TRANSLATIONS = {
         "download_refined": "⬇️ {resolution} 이미지 다운로드",
 
         # Refine – Base quality rules (always applied — use English for better model output)
-        "preset_base_quality": "[ADDITIONAL QUALITY EMPHASIS]\n- Re-render every text label razor-sharp: fix garbled characters, ensure correct technical terminology, and maximize legibility.\n- Verify all arrows and connectors accurately represent the logical flow — consistent weights, clear arrowheads, no ambiguous endpoints.\n- Keep all text strictly within its container boundaries. Maintain balanced spacing and professional alignment throughout.",
+        "preset_base_quality": "",
 
         # Refine – Preset prompts (labels in Korean, prompts in English for quality)
         "preset_label": "빠른 편집 프리셋",
