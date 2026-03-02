@@ -553,7 +553,7 @@ def main():
                 placeholder=t("simple_mode_placeholder"),
                 key="simple_desc_input",
             )
-            if st.button(t("simple_mode_generate_button"), key="simple_gen_btn"):
+            if st.button(t("simple_mode_generate_button"), key="simple_gen_btn", type="primary", use_container_width=True):
                 if simple_desc.strip():
                     with st.spinner(t("simple_mode_spinner")):
                         try:
