@@ -200,6 +200,18 @@ TRANSLATIONS = {
         "preset_add_border": "🖼️ Add border & frame",
         "preset_add_border_prompt": "Add a clean, professional border and frame around the diagram. Use a thin, consistent border line with adequate padding/margin from the content. Optionally add subtle rounded corners. Keep all diagram content unchanged.",
 
+        # Refine rounds
+        "refine_rounds": "Refinement Rounds",
+        "refine_rounds_help": "Number of iterative refinement passes. Each round uses the previous result as input.",
+        "refine_round_progress": "Round {current}/{total}",
+
+        # Refine history
+        "refine_history_label": "Refinement History",
+        "refine_history_counter": "{current} / {total}",
+        "refine_history_prev": "◀ Prev",
+        "refine_history_next": "Next ▶",
+        "refine_from_this": "Refine from this version",
+
         # Language selector
         "language_label": "🌐 Language",
 
@@ -415,6 +427,18 @@ TRANSLATIONS = {
         "preset_white_bg_prompt": "Replace the background with a clean, pure white (#FFFFFF) background. Remove any background patterns, gradients, textures, or watermarks. Ensure all foreground elements remain clearly visible against the white background. Keep all content unchanged.",
         "preset_add_border": "🖼️ 테두리 & 프레임 추가",
         "preset_add_border_prompt": "Add a clean, professional border and frame around the diagram. Use a thin, consistent border line with adequate padding/margin from the content. Optionally add subtle rounded corners. Keep all diagram content unchanged.",
+
+        # Refine rounds
+        "refine_rounds": "개선 반복 횟수",
+        "refine_rounds_help": "반복 개선 횟수입니다. 각 라운드는 이전 결과를 입력으로 사용합니다.",
+        "refine_round_progress": "라운드 {current}/{total}",
+
+        # Refine history
+        "refine_history_label": "개선 히스토리",
+        "refine_history_counter": "{current} / {total}",
+        "refine_history_prev": "◀ 이전",
+        "refine_history_next": "다음 ▶",
+        "refine_from_this": "이 버전으로 추가 개선",
 
         # Language selector
         "language_label": "🌐 언어",

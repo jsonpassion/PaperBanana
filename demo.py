@@ -92,6 +92,18 @@ except Exception as e:
 
 SUPPORTED_LANGUAGES = {"English": "en", "한국어": "ko"}
 
+# ── Constants ──
+ANALYSIS_TEMPERATURE = 0.2
+ANALYSIS_MAX_TOKENS = 2048
+IMAGE_GEN_TEMPERATURE = 1.0
+IMAGE_GEN_MAX_TOKENS = 8192
+MAX_CONCURRENT = 10
+DEFAULT_NUM_COPIES = 10
+MAX_CRITIC_ROUNDS_CHECK = 4
+RESULTS_GRID_COLS = 3
+ASPECT_RATIOS = ["16:9", "21:9", "3:2"]
+RESOLUTIONS = ["2K", "4K"]
+
 def t(key, **kwargs):
     """Return the translated string for the current language."""
     lang = st.session_state.get("language", "ko")
@@ -149,7 +161,7 @@ def base64_to_image(b64_str):
     except Exception:
         return None
 
-def create_sample_inputs(method_content, caption, diagram_type="Pipeline", aspect_ratio="16:9", num_copies=10, max_critic_rounds=3, diagram_language="en"):
+def create_sample_inputs(method_content, caption, diagram_type="Pipeline", aspect_ratio="16:9", num_copies=DEFAULT_NUM_COPIES, max_critic_rounds=3, diagram_language="en"):
     """Create multiple copies of the input data for parallel processing."""
     base_input = {
         "filename": "demo_input",
@@ -199,7 +211,7 @@ async def process_parallel_candidates(data_list, exp_mode="dev_planner_critic", 
 
     # Process all candidates in parallel (concurrency controlled by processor)
     results = []
-    concurrent_num = 10
+    concurrent_num = MAX_CONCURRENT
 
     async for result_data in processor.process_queries_batch(
         data_list, max_concurrent=concurrent_num, do_eval=False,
@@ -242,8 +254,8 @@ async def _analyze_image_for_corrections(client, image_bytes, edit_prompt, model
     ]
 
     config = types.GenerateContentConfig(
-        temperature=0.2,
-        max_output_tokens=2048,
+        temperature=ANALYSIS_TEMPERATURE,
+        max_output_tokens=ANALYSIS_MAX_TOKENS,
     )
 
     response = await asyncio.to_thread(
@@ -267,21 +279,16 @@ async def _analyze_image_for_corrections(client, image_bytes, edit_prompt, model
     return analysis_text, n_corrections
 
 
-async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9", image_size="2K", progress_callback=None):
+async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9", image_size="2K", num_rounds=1, progress_callback=None):
     """
-    Two-phase refinement pipeline:
-      Phase 1: Vision model analyzes the image → produces specific correction list
-      Phase 2: Image model applies corrections + user edit instructions
-
-    Args:
-        image_bytes: Image data in bytes
-        edit_prompt: Text description of desired changes
-        aspect_ratio: Output aspect ratio (21:9, 16:9, 3:2)
-        image_size: Output resolution (2K or 4K)
-        progress_callback: Optional callback(step, info) for progress reporting
+    Multi-round two-phase refinement pipeline.
+    Each round: Phase 1 (analyze) → Phase 2 (generate).
+    Subsequent rounds use the previous round's output as input.
 
     Returns:
-        Tuple of (edited_image_bytes, success_message)
+        Tuple of (list_of_round_bytes, success_message).
+        Each element in the list is the image bytes from that round.
+        Empty list on failure.
     """
     def _report(step, **info):
         if progress_callback:
@@ -295,18 +302,12 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
 
         api_key = get_config_val("api_keys", "google_api_key", "GOOGLE_API_KEY", "")
         if not api_key:
-            return None, "Google API Key not configured. Set it in configs/model_config.yaml or GOOGLE_API_KEY env var."
+            return [], "Google API Key not configured. Set it in configs/model_config.yaml or GOOGLE_API_KEY env var."
 
         client = genai.Client(api_key=api_key)
-
-        # ── Phase 1: Analyze image with vision model ──
         analysis_model = get_config_val("defaults", "model_name", "MODEL_NAME", "")
-        analysis_text, n_corrections = await _analyze_image_for_corrections(
-            client, image_bytes, edit_prompt, analysis_model, _report
-        )
+        image_model = get_config_val("defaults", "image_model_name", "IMAGE_MODEL_NAME", "")
 
-        # ── Phase 2: Apply corrections with image model ──
-        # Corrections FIRST (highest priority), then rules, then user instructions
         baseline = (
             "Refine this diagram. Keep the same layout and structure.\n"
             "- Make ALL text razor-sharp and legible. Fix garbled or nonsensical text.\n"
@@ -316,57 +317,77 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
             "- Do NOT add new components. Do NOT add figure captions.\n"
         )
 
-        if n_corrections > 0:
-            full_prompt = (
-                f"{baseline}\n"
-                f"CORRECTIONS (from analysis):\n{analysis_text}\n\n"
-                f"EDIT INSTRUCTIONS:\n{edit_prompt}"
+        round_results = []
+        current_bytes = image_bytes
+
+        for round_i in range(num_rounds):
+            if num_rounds > 1:
+                _report("round", current=round_i + 1, total=num_rounds)
+
+            # ── Phase 1: Analyze ──
+            analysis_text, n_corrections = await _analyze_image_for_corrections(
+                client, current_bytes, edit_prompt, analysis_model, _report
             )
-        else:
-            full_prompt = f"{baseline}\nEDIT INSTRUCTIONS:\n{edit_prompt}"
 
-        contents = [
-            types.Part.from_text(text=full_prompt),
-            types.Part.from_bytes(mime_type="image/jpeg", data=image_bytes),
-        ]
+            # ── Phase 2: Generate ──
+            if n_corrections > 0:
+                full_prompt = (
+                    f"{baseline}\n"
+                    f"CORRECTIONS (from analysis):\n{analysis_text}\n\n"
+                    f"EDIT INSTRUCTIONS:\n{edit_prompt}"
+                )
+            else:
+                full_prompt = f"{baseline}\nEDIT INSTRUCTIONS:\n{edit_prompt}"
 
-        config = types.GenerateContentConfig(
-            temperature=1.0,
-            max_output_tokens=8192,
-            response_modalities=["IMAGE"],
-            image_config=types.ImageConfig(
-                aspect_ratio=aspect_ratio,
-                image_size=image_size,
-            ),
-        )
+            contents = [
+                types.Part.from_text(text=full_prompt),
+                types.Part.from_bytes(mime_type="image/jpeg", data=current_bytes),
+            ]
 
-        image_model = get_config_val("defaults", "image_model_name", "IMAGE_MODEL_NAME", "")
-        _report("api_call", model=image_model)
-        _report("waiting")
+            gen_config = types.GenerateContentConfig(
+                temperature=IMAGE_GEN_TEMPERATURE,
+                max_output_tokens=IMAGE_GEN_MAX_TOKENS,
+                response_modalities=["IMAGE"],
+                image_config=types.ImageConfig(
+                    aspect_ratio=aspect_ratio,
+                    image_size=image_size,
+                ),
+            )
 
-        response = await asyncio.to_thread(
-            client.models.generate_content,
-            model=image_model,
-            contents=contents,
-            config=config,
-        )
+            _report("api_call", model=image_model)
+            _report("waiting")
 
-        _report("processing")
+            response = await asyncio.to_thread(
+                client.models.generate_content,
+                model=image_model,
+                contents=contents,
+                config=gen_config,
+            )
 
-        # Extract image from response
-        if response.candidates and response.candidates[0].content.parts:
-            for part in response.candidates[0].content.parts:
-                if hasattr(part, 'inline_data') and part.inline_data:
-                    edited_image_data = part.inline_data.data
-                    if isinstance(edited_image_data, bytes):
-                        return edited_image_data, "✅ Image refined successfully!"
-                    elif isinstance(edited_image_data, str):
-                        return base64.b64decode(edited_image_data), "✅ Image refined successfully!"
+            _report("processing")
 
-        return None, "No image data found in response"
+            # Extract image from response
+            result_bytes = None
+            if response.candidates and response.candidates[0].content.parts:
+                for part in response.candidates[0].content.parts:
+                    if hasattr(part, 'inline_data') and part.inline_data:
+                        edited_image_data = part.inline_data.data
+                        if isinstance(edited_image_data, bytes):
+                            result_bytes = edited_image_data
+                        elif isinstance(edited_image_data, str):
+                            result_bytes = base64.b64decode(edited_image_data)
+                        break
+
+            if result_bytes is None:
+                return round_results, "No image data found in response"
+
+            round_results.append(result_bytes)
+            current_bytes = result_bytes
+
+        return round_results, "✅ Image refined successfully!"
 
     except Exception as e:
-        return None, f"Error: {str(e)}"
+        return [], f"Error: {str(e)}"
 
 
 def get_evolution_stages(result, exp_mode):
@@ -398,7 +419,7 @@ def get_evolution_stages(result, exp_mode):
             })
     
     # Stage 3+: Critic iterations
-    for round_idx in range(4):  # Check up to 4 rounds
+    for round_idx in range(MAX_CRITIC_ROUNDS_CHECK):
         critic_img_key = f"target_{task_name}_critic_desc{round_idx}_base64_jpg"
         critic_desc_key = f"target_{task_name}_critic_desc{round_idx}"
         critic_sugg_key = f"target_{task_name}_critic_suggestions{round_idx}"
@@ -424,7 +445,7 @@ def display_candidate_result(result, candidate_id, exp_mode):
     final_desc_key = None
     
     # Try to find the last critic round
-    for round_idx in range(3, -1, -1):  # Check rounds 3, 2, 1, 0
+    for round_idx in range(MAX_CRITIC_ROUNDS_CHECK - 1, -1, -1):
         image_key = f"target_{task_name}_critic_desc{round_idx}_base64_jpg"
         if image_key in result and result[image_key]:
             final_image_key = image_key
@@ -508,7 +529,8 @@ def display_candidate_result(result, candidate_id, exp_mode):
             else:
                 st.info(t("no_description"))
 
-def main():
+def _render_header():
+    """Render title, language selector, and return shared UI state."""
     # Sync language from widget state before any t() calls
     if "lang_selector" in st.session_state:
         st.session_state["language"] = SUPPORTED_LANGUAGES[st.session_state["lang_selector"]]
@@ -529,10 +551,8 @@ def main():
 
     st.caption(t("app_subtitle"))
 
-    # Global processing lock — disables interactive elements during long-running tasks
     _busy = st.session_state.get("processing", False)
-
-    _rec = t("recommended_tag")  # (추천) / (Recommended)
+    _rec = t("recommended_tag")
 
     def _clean_selectbox_value(val, valid_options, default_idx=0):
         """Strip recommendation tag from selectbox value on language switch."""
@@ -543,102 +563,118 @@ def main():
                 return opt
         return valid_options[default_idx]
 
-    # Create tabs
-    tab1, tab2 = st.tabs([t("tab_generate"), t("tab_refine")])
+    return _busy, _rec, _clean_selectbox_value
 
-    # ==================== TAB 1: Generate Candidates ====================
-    with tab1:
+
+def _render_generation_sidebar(_busy, _rec, _clean):
+    """Render Tab 1 sidebar and return settings dict."""
+    with st.sidebar:
+        st.title(t("sidebar_generation_title"))
+
+        exp_mode_options = ["demo_planner_critic", "demo_full"]
+        exp_mode = st.selectbox(
+            t("pipeline_mode_label"),
+            exp_mode_options,
+            index=0,
+            key="tab1_exp_mode",
+            format_func=lambda x: f"{x} {_rec}" if x == exp_mode_options[0] else x,
+            help=t("pipeline_mode_help")
+        )
+        exp_mode = _clean(exp_mode, exp_mode_options)
+
+        mode_info = {
+            "demo_planner_critic": t("pipeline_planner_critic"),
+            "demo_full": t("pipeline_full")
+        }
+        st.info(t("pipeline_info", pipeline=mode_info[exp_mode]))
+
+        retrieval_options = ["auto", "manual", "random", "none"]
+        retrieval_setting = st.selectbox(
+            t("retrieval_label"),
+            retrieval_options,
+            index=0,
+            key="tab1_retrieval_setting",
+            format_func=lambda x: f"{x} {_rec}" if x == retrieval_options[0] else x,
+            help=t("retrieval_help")
+        )
+        retrieval_setting = _clean(retrieval_setting, retrieval_options)
+
+        num_candidates = st.number_input(
+            t("num_candidates_label"),
+            min_value=1,
+            max_value=20,
+            value=4,
+            key="tab1_num_candidates",
+            help=t("num_candidates_help") + f" ({_rec}: 4)"
+        )
+
+        aspect_ratio = st.selectbox(
+            t("aspect_ratio_label"),
+            ASPECT_RATIOS,
+            key="tab1_aspect_ratio",
+            format_func=lambda x: f"{x} {_rec}" if x == ASPECT_RATIOS[0] else x,
+            help=t("aspect_ratio_help")
+        )
+        aspect_ratio = _clean(aspect_ratio, ASPECT_RATIOS)
+
+        max_critic_rounds = st.number_input(
+            t("max_critic_rounds_label"),
+            min_value=1,
+            max_value=5,
+            value=1,
+            key="tab1_max_critic_rounds",
+            help=t("max_critic_rounds_help") + f" ({_rec}: 1)"
+        )
+
+        default_model = get_config_val("defaults", "model_name", "MODEL_NAME", "YOUR_MODEL_NAME_HERE")
+        options = [default_model] if default_model else ["YOUR_MODEL_NAME_HERE"]
+
+        model_name = st.selectbox(
+            t("model_name_label"),
+            options,
+            index=0,
+            key="tab1_model_name",
+            help=t("model_name_help")
+        )
+
+        lang_options = ["Korean (한국어)", "English"]
+        diagram_language = st.selectbox(
+            t("diagram_language_label"),
+            lang_options,
+            index=0,
+            key="tab1_diagram_language",
+            format_func=lambda x: f"{x} {_rec}" if x == lang_options[0] else x,
+            help=t("diagram_language_help"),
+        )
+        diagram_language = _clean(diagram_language, lang_options)
+        diagram_lang_code = "ko" if "Korean" in diagram_language else "en"
+
+    return {
+        "exp_mode": exp_mode,
+        "mode_info": mode_info,
+        "retrieval_setting": retrieval_setting,
+        "num_candidates": num_candidates,
+        "aspect_ratio": aspect_ratio,
+        "max_critic_rounds": max_critic_rounds,
+        "model_name": model_name,
+        "diagram_lang_code": diagram_lang_code,
+    }
+
+
+def _render_generation_tab(tab, _busy, _rec, _clean):
+    """Render the full Generation tab (Tab 1)."""
+    with tab:
         st.info(t("generate_header"))
 
-        # Sidebar configuration for Tab 1
-        with st.sidebar:
-            st.title(t("sidebar_generation_title"))
+        cfg = _render_generation_sidebar(_busy, _rec, _clean)
+        exp_mode = cfg["exp_mode"]
+        mode_info = cfg["mode_info"]
 
-            exp_mode_options = ["demo_planner_critic", "demo_full"]
-            exp_mode = st.selectbox(
-                t("pipeline_mode_label"),
-                exp_mode_options,
-                index=0,
-                key="tab1_exp_mode",
-                format_func=lambda x: f"{x} {_rec}" if x == exp_mode_options[0] else x,
-                help=t("pipeline_mode_help")
-            )
-            exp_mode = _clean_selectbox_value(exp_mode, exp_mode_options)
-
-            mode_info = {
-                "demo_planner_critic": t("pipeline_planner_critic"),
-                "demo_full": t("pipeline_full")
-            }
-            st.info(t("pipeline_info", pipeline=mode_info[exp_mode]))
-
-            retrieval_options = ["auto", "manual", "random", "none"]
-            retrieval_setting = st.selectbox(
-                t("retrieval_label"),
-                retrieval_options,
-                index=0,
-                key="tab1_retrieval_setting",
-                format_func=lambda x: f"{x} {_rec}" if x == retrieval_options[0] else x,
-                help=t("retrieval_help")
-            )
-            retrieval_setting = _clean_selectbox_value(retrieval_setting, retrieval_options)
-
-            num_candidates = st.number_input(
-                t("num_candidates_label"),
-                min_value=1,
-                max_value=20,
-                value=4,
-                key="tab1_num_candidates",
-                help=t("num_candidates_help") + f" ({_rec}: 4)"
-            )
-
-            aspect_options = ["16:9", "21:9", "3:2"]
-            aspect_ratio = st.selectbox(
-                t("aspect_ratio_label"),
-                aspect_options,
-                key="tab1_aspect_ratio",
-                format_func=lambda x: f"{x} {_rec}" if x == aspect_options[0] else x,
-                help=t("aspect_ratio_help")
-            )
-            aspect_ratio = _clean_selectbox_value(aspect_ratio, aspect_options)
-
-            max_critic_rounds = st.number_input(
-                t("max_critic_rounds_label"),
-                min_value=1,
-                max_value=5,
-                value=1,
-                key="tab1_max_critic_rounds",
-                help=t("max_critic_rounds_help") + f" ({_rec}: 1)"
-            )
-
-            default_model = get_config_val("defaults", "model_name", "MODEL_NAME", "YOUR_MODEL_NAME_HERE")
-            options = [default_model] if default_model else ["YOUR_MODEL_NAME_HERE"]
-
-            model_name = st.selectbox(
-                t("model_name_label"),
-                options,
-                index=0,
-                key="tab1_model_name",
-                help=t("model_name_help")
-            )
-
-            lang_options = ["Korean (한국어)", "English"]
-            diagram_language = st.selectbox(
-                t("diagram_language_label"),
-                lang_options,
-                index=0,
-                key="tab1_diagram_language",
-                format_func=lambda x: f"{x} {_rec}" if x == lang_options[0] else x,
-                help=t("diagram_language_help"),
-            )
-            diagram_language = _clean_selectbox_value(diagram_language, lang_options)
-            diagram_lang_code = "ko" if "Korean" in diagram_language else "en"
-        
         st.divider()
 
         # Input section
         st.markdown(t("input_header"))
 
-        # Input mode selection (Simple Mode first as default)
         input_mode = st.radio(
             t("input_mode_label"),
             [t("input_mode_simple"), t("input_mode_direct"), t("input_mode_template")],
@@ -649,7 +685,6 @@ def main():
         )
 
         if input_mode == t("input_mode_simple"):
-            # ── Simple Mode ──
             st.caption(t("simple_mode_caption"))
             simple_desc = st.text_area(
                 t("simple_mode_input_label"),
@@ -679,7 +714,6 @@ def main():
                     st.error(t("simple_mode_empty_error"))
 
         elif input_mode == t("input_mode_template"):
-            # ── Template Mode ──
             from input_templates import INPUT_TEMPLATES
             st.caption(t("template_mode_caption"))
             template_names = list(INPUT_TEMPLATES.keys())
@@ -709,8 +743,7 @@ def main():
                 else:
                     st.error(t("template_mode_empty_error"))
 
-        # ── Direct Input (always shown — acts as the editable text areas) ──
-        # Unified example selector: one dropdown populates both method and caption
+        # ── Direct Input (always shown) ──
         example_keys = list(EXAMPLE_TEMPLATES.keys())
         lang = st.session_state.get("language", "ko")
 
@@ -755,25 +788,23 @@ def main():
                 placeholder=t("caption_placeholder"),
                 help=t("caption_help"),
             )
-        
+
         # Process button
         if st.button(t("generate_button"), type="primary", width="stretch", disabled=_busy):
             if not method_content or not caption:
                 st.error(t("error_missing_input"))
             else:
                 st.session_state["processing"] = True
-                # Save to session state
                 st.session_state["method_content"] = method_content
                 st.session_state["caption"] = caption
 
-                # Create input data list
                 input_data_list = create_sample_inputs(
                     method_content=method_content,
                     caption=caption,
-                    aspect_ratio=aspect_ratio,
-                    num_copies=num_candidates,
-                    max_critic_rounds=max_critic_rounds,
-                    diagram_language=diagram_lang_code,
+                    aspect_ratio=cfg["aspect_ratio"],
+                    num_copies=cfg["num_candidates"],
+                    max_critic_rounds=cfg["max_critic_rounds"],
+                    diagram_language=cfg["diagram_lang_code"],
                 )
 
                 with st.status(t("progress_title"), expanded=True) as status_ui:
@@ -791,13 +822,12 @@ def main():
                             progress_bar.progress(done / total, text=t("progress_candidate", done=done, total=total))
                             log_container.write(t("progress_candidate_log", done=done, total=total))
 
-                    # Process in parallel
                     try:
                         results = run_async(process_parallel_candidates(
                             input_data_list,
                             exp_mode=exp_mode,
-                            retrieval_setting=retrieval_setting,
-                            model_name=model_name,
+                            retrieval_setting=cfg["retrieval_setting"],
+                            model_name=cfg["model_name"],
                             progress_callback=on_progress,
                         ))
                         st.session_state["results"] = results
@@ -805,19 +835,13 @@ def main():
                         timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         st.session_state["timestamp"] = timestamp_str
 
-                        # Save results to JSON file
                         try:
-                            # Create results directory if it doesn't exist
                             results_dir = Path(__file__).parent / "results" / "demo"
                             results_dir.mkdir(parents=True, exist_ok=True)
-
-                            # Generate filename with timestamp
                             json_filename = results_dir / f"demo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
 
-                            # Save to JSON with proper encoding handling (like main.py)
                             with open(json_filename, "w", encoding="utf-8", errors="surrogateescape") as f:
                                 json_string = json.dumps(results, ensure_ascii=False, indent=4)
-                                # Clean invalid UTF-8 characters
                                 json_string = json_string.encode("utf-8", "ignore").decode("utf-8")
                                 f.write(json_string)
 
@@ -837,18 +861,17 @@ def main():
                             st.code(traceback.format_exc())
                     finally:
                         st.session_state["processing"] = False
-        
+
         # Display results
         if "results" in st.session_state and st.session_state["results"]:
             results = st.session_state["results"]
             current_mode = st.session_state.get("exp_mode", exp_mode)
             timestamp = st.session_state.get("timestamp", "N/A")
-            
+
             st.divider()
             st.markdown(t("results_header"))
             st.caption(t("results_caption", timestamp=timestamp, pipeline=mode_info.get(current_mode, current_mode)))
-            
-            # Show JSON file download if available
+
             if "json_file" in st.session_state:
                 json_file_path = Path(st.session_state["json_file"])
                 if json_file_path.exists():
@@ -865,11 +888,10 @@ def main():
                             mime="application/json",
                             width="stretch"
                         )
-            
-            # Display results in a grid (3 columns)
-            num_cols = 3
+
+            num_cols = RESULTS_GRID_COLS
             num_results = len(results)
-            
+
             for row_start in range(0, num_results, num_cols):
                 cols = st.columns(num_cols)
                 for col_idx in range(num_cols):
@@ -877,37 +899,33 @@ def main():
                     if result_idx < num_results:
                         with cols[col_idx]:
                             display_candidate_result(results[result_idx], result_idx, current_mode)
-            
-            # Add ZIP download button
+
+            # ZIP download
             st.divider()
             st.markdown(t("batch_download_header"))
-            
+
             try:
                 import zipfile
-                
+
                 zip_buffer = BytesIO()
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                     task_name = "diagram"
-                    
+
                     for candidate_id, result in enumerate(results):
-                        
-                        # Find the final image key (same logic as display)
                         final_image_key = None
-                        
-                        # Try to find the last critic round
-                        for round_idx in range(3, -1, -1):
+
+                        for round_idx in range(MAX_CRITIC_ROUNDS_CHECK - 1, -1, -1):
                             image_key = f"target_{task_name}_critic_desc{round_idx}_base64_jpg"
                             if image_key in result and result[image_key]:
                                 final_image_key = image_key
                                 break
-                        
-                        # Fallback if no critic rounds completed
+
                         if not final_image_key:
                             if current_mode == "demo_full":
                                 final_image_key = f"target_{task_name}_stylist_desc0_base64_jpg"
                             else:
                                 final_image_key = f"target_{task_name}_desc0_base64_jpg"
-                        
+
                         if final_image_key and final_image_key in result:
                             img = base64_to_image(result[final_image_key])
                             if img:
@@ -917,7 +935,7 @@ def main():
                                     f"candidate_{candidate_id}.png",
                                     img_buffer.getvalue()
                                 )
-                
+
                 zip_buffer.seek(0)
                 st.download_button(
                     label=t("download_zip"),
@@ -929,39 +947,48 @@ def main():
                 st.success(t("zip_ready"))
             except Exception as e:
                 st.error(t("error_zip", error=e))
-    
-    # ==================== TAB 2: Refine Image ====================
-    with tab2:
+
+
+def _render_refinement_tab(tab, _busy, _rec, _clean):
+    """Render the full Refinement tab (Tab 2)."""
+    with tab:
         st.info(t("refine_header"))
 
         # Sidebar for refinement settings
         with st.sidebar:
             st.title(t("sidebar_refine_title"))
 
-            refine_res_options = ["2K", "4K"]
             refine_resolution = st.selectbox(
                 t("target_resolution_label"),
-                refine_res_options,
+                RESOLUTIONS,
                 index=0,
                 key="refine_resolution",
-                format_func=lambda x: f"{x} {_rec}" if x == refine_res_options[0] else x,
+                format_func=lambda x: f"{x} {_rec}" if x == RESOLUTIONS[0] else x,
                 help=t("target_resolution_help")
             )
-            refine_resolution = _clean_selectbox_value(refine_resolution, refine_res_options)
+            refine_resolution = _clean(refine_resolution, RESOLUTIONS)
 
-            refine_ar_options = ["16:9", "21:9", "3:2"]
             refine_aspect_ratio = st.selectbox(
                 t("aspect_ratio_label"),
-                refine_ar_options,
+                ASPECT_RATIOS,
                 index=0,
                 key="refine_aspect_ratio",
-                format_func=lambda x: f"{x} {_rec}" if x == refine_ar_options[0] else x,
+                format_func=lambda x: f"{x} {_rec}" if x == ASPECT_RATIOS[0] else x,
                 help=t("refine_aspect_ratio_help")
             )
-            refine_aspect_ratio = _clean_selectbox_value(refine_aspect_ratio, refine_ar_options)
-        
+            refine_aspect_ratio = _clean(refine_aspect_ratio, ASPECT_RATIOS)
+
+            num_rounds = st.slider(
+                t("refine_rounds"),
+                min_value=1,
+                max_value=3,
+                value=1,
+                key="refine_num_rounds",
+                help=t("refine_rounds_help"),
+            )
+
         st.divider()
-        
+
         # Upload section
         st.markdown(t("upload_header"))
         uploaded_file = st.file_uploader(
@@ -969,12 +996,18 @@ def main():
             type=["png", "jpg", "jpeg"],
             help=t("file_uploader_help")
         )
-        
+
         if uploaded_file is not None:
-            # Display uploaded image
+            # Reset history when a new file is uploaded
+            current_file_id = f"{uploaded_file.name}_{uploaded_file.size}"
+            if st.session_state.get("_refine_file_id") != current_file_id:
+                st.session_state["_refine_file_id"] = current_file_id
+                st.session_state.pop("refine_history", None)
+                st.session_state.pop("refine_history_idx", None)
+
             uploaded_image = Image.open(uploaded_file)
             col1, col2 = st.columns(2)
-            
+
             with col1:
                 st.markdown(t("original_image"))
                 st.image(uploaded_image, width="stretch")
@@ -1012,7 +1045,6 @@ def main():
                             selected_prompts.append(t(prompt_key))
                             selected_labels.append(t(label_key))
 
-                # Show selected presets summary
                 if selected_labels:
                     summary = " / ".join(selected_labels)
                     st.markdown(
@@ -1035,17 +1067,15 @@ def main():
                     disabled=_busy,
                 )
 
-                # Combine: base quality rules + selected presets + user additional text
                 base_quality = t("preset_base_quality")
                 parts = [p for p in [base_quality, preset_combined, additional_prompt.strip()] if p]
                 final_prompt = "\n\n".join(parts)
 
-                # Phase 1: Button click → save params, set busy, rerun to disable UI
+                # Phase 1: Button click → save params, set busy, rerun
                 if st.button(t("refine_button"), type="primary", width="stretch", disabled=_busy):
                     if not final_prompt:
                         st.error(t("error_no_edit_prompt"))
                     else:
-                        # Convert PIL image to bytes before rerun
                         img_byte_arr = BytesIO()
                         uploaded_image.save(img_byte_arr, format='JPEG')
                         st.session_state["_refine_pending"] = {
@@ -1053,11 +1083,12 @@ def main():
                             "edit_prompt": final_prompt,
                             "aspect_ratio": refine_aspect_ratio,
                             "resolution": refine_resolution,
+                            "num_rounds": num_rounds,
                         }
                         st.session_state["processing"] = True
                         st.rerun()
 
-                # Phase 2: Execute pending refine (UI is now disabled)
+                # Phase 2: Execute pending refine
                 if st.session_state.get("_refine_pending"):
                     pending = st.session_state.pop("_refine_pending")
                     with st.status(t("refine_progress_title"), expanded=True) as refine_status:
@@ -1066,6 +1097,8 @@ def main():
                         def on_refine_progress(step, info):
                             if step == "prepare":
                                 log_container.write(t("refine_step_prepare"))
+                            elif step == "round":
+                                log_container.write(t("refine_round_progress", current=info.get("current", 1), total=info.get("total", 1)))
                             elif step == "analyze":
                                 log_container.write(t("refine_step_analyze", model=info.get("model", "")))
                             elif step == "analyze_done":
@@ -1081,19 +1114,33 @@ def main():
                                 log_container.write(t("refine_step_processing"))
 
                         try:
-                            refined_bytes, message = run_async(
+                            round_results, message = run_async(
                                 refine_image_with_nanoviz(
                                     image_bytes=pending["image_bytes"],
                                     edit_prompt=pending["edit_prompt"],
                                     aspect_ratio=pending["aspect_ratio"],
                                     image_size=pending["resolution"],
+                                    num_rounds=pending.get("num_rounds", 1),
                                     progress_callback=on_refine_progress,
                                 )
                             )
 
-                            if refined_bytes:
-                                st.session_state["refined_image"] = refined_bytes
-                                st.session_state["refine_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            if round_results:
+                                # Append each round result to history
+                                history = st.session_state.get("refine_history", [])
+                                ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                for rb in round_results:
+                                    history.append({
+                                        "image_bytes": rb,
+                                        "timestamp": ts,
+                                        "prompt": pending["edit_prompt"][:200],
+                                    })
+                                # Cap at 10 entries
+                                if len(history) > 10:
+                                    history = history[-10:]
+                                st.session_state["refine_history"] = history
+                                st.session_state["refine_history_idx"] = len(history) - 1
+                                st.session_state["refine_timestamp"] = ts
                                 refine_status.update(label=t("refine_progress_complete", resolution=pending["resolution"]), state="complete", expanded=False)
                             else:
                                 refine_status.update(label=t("refine_progress_error"), state="error", expanded=True)
@@ -1109,32 +1156,76 @@ def main():
                         finally:
                             st.session_state["processing"] = False
                             st.rerun()
-            
-            # Display refined result if available
-            if "refined_image" in st.session_state:
+
+            # Display refinement history
+            history = st.session_state.get("refine_history", [])
+            if history:
                 st.divider()
                 st.markdown(t("refined_result_header"))
-                st.caption(t("refined_result_caption", timestamp=st.session_state.get('refine_timestamp', 'N/A'), resolution=refine_resolution))
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
+
+                idx = st.session_state.get("refine_history_idx", len(history) - 1)
+                idx = max(0, min(idx, len(history) - 1))
+
+                # Navigation bar
+                nav_col1, nav_col2, nav_col3 = st.columns([1, 2, 1])
+                with nav_col1:
+                    if st.button(t("refine_history_prev"), disabled=(idx <= 0 or _busy), key="hist_prev"):
+                        st.session_state["refine_history_idx"] = idx - 1
+                        st.rerun()
+                with nav_col2:
+                    st.markdown(
+                        f"<div style='text-align:center;font-weight:600;padding:0.4em 0;'>"
+                        f"{t('refine_history_counter', current=idx + 1, total=len(history))}"
+                        f"</div>",
+                        unsafe_allow_html=True,
+                    )
+                with nav_col3:
+                    if st.button(t("refine_history_next"), disabled=(idx >= len(history) - 1 or _busy), key="hist_next"):
+                        st.session_state["refine_history_idx"] = idx + 1
+                        st.rerun()
+
+                current_entry = history[idx]
+                st.caption(t("refined_result_caption", timestamp=current_entry.get("timestamp", "N/A"), resolution=refine_resolution))
+
+                res_col1, res_col2 = st.columns(2)
+
+                with res_col1:
                     st.markdown(t("before_label"))
                     st.image(uploaded_image, width="stretch")
 
-                with col2:
+                with res_col2:
                     st.markdown(t("after_label", resolution=refine_resolution))
-                    refined_image = Image.open(BytesIO(st.session_state["refined_image"]))
+                    refined_image = Image.open(BytesIO(current_entry["image_bytes"]))
                     st.image(refined_image, width="stretch")
 
-                    # Download button
                     st.download_button(
                         label=t("download_refined", resolution=refine_resolution),
-                        data=st.session_state["refined_image"],
+                        data=current_entry["image_bytes"],
                         file_name=f"refined_{refine_resolution}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
                         mime="image/png",
-                        width="stretch"
+                        width="stretch",
+                        key="hist_download",
                     )
+
+                # "Refine from this version" button
+                if st.button(t("refine_from_this"), disabled=(_busy or not final_prompt), key="refine_from_hist", type="secondary"):
+                    st.session_state["_refine_pending"] = {
+                        "image_bytes": current_entry["image_bytes"],
+                        "edit_prompt": final_prompt,
+                        "aspect_ratio": refine_aspect_ratio,
+                        "resolution": refine_resolution,
+                        "num_rounds": num_rounds,
+                    }
+                    st.session_state["processing"] = True
+                    st.rerun()
+
+
+def main():
+    _busy, _rec, _clean = _render_header()
+    tab1, tab2 = st.tabs([t("tab_generate"), t("tab_refine")])
+    _render_generation_tab(tab1, _busy, _rec, _clean)
+    _render_refinement_tab(tab2, _busy, _rec, _clean)
+
 
 if __name__ == "__main__":
     main()
