@@ -164,6 +164,10 @@ TRANSLATIONS = {
         "preset_upscale": "🔍 Upscale only (keep as-is)",
         "preset_upscale_prompt": "Keep everything exactly the same. Do not change any content, layout, colors, or text. Only regenerate the image at higher resolution with sharper details and cleaner edges.",
 
+        # -- Content fixes --
+        "preset_fix_content": "🔬 Fix content errors",
+        "preset_fix_content_prompt": "Carefully examine the diagram's content for factual and logical errors. Check that: (1) process flows and arrows represent a logically correct sequence, (2) component names, labels, and descriptions match their intended meaning, (3) data flow directions are correct, (4) no steps are missing or duplicated in the pipeline, (5) mathematical notations, formulas, or variable names are accurate. Fix any identified content errors while preserving the overall layout and visual style.",
+
         # -- Text fixes --
         "preset_fix_text": "✏️ Fix text errors",
         "preset_fix_text_prompt": "Carefully examine every text element in the diagram: labels, annotations, captions, axis titles, and legends. Fix any typos, misspellings, garbled/corrupted characters, encoding artifacts, and grammatical errors. Ensure consistent capitalization and punctuation. Keep all non-text elements unchanged.",
@@ -391,6 +395,10 @@ TRANSLATIONS = {
         # -- 해상도 --
         "preset_upscale": "🔍 해상도만 높이기 (내용 유지)",
         "preset_upscale_prompt": "Keep everything exactly the same. Do not change any content, layout, colors, or text. Only regenerate the image at higher resolution with sharper details and cleaner edges.",
+
+        # -- 내용 수정 --
+        "preset_fix_content": "🔬 내용 오류 수정",
+        "preset_fix_content_prompt": "Carefully examine the diagram's content for factual and logical errors. Check that: (1) process flows and arrows represent a logically correct sequence, (2) component names, labels, and descriptions match their intended meaning, (3) data flow directions are correct, (4) no steps are missing or duplicated in the pipeline, (5) mathematical notations, formulas, or variable names are accurate. Fix any identified content errors while preserving the overall layout and visual style.",
 
         # -- 텍스트 수정 --
         "preset_fix_text": "✏️ 텍스트 오류 수정",

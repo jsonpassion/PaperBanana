@@ -1018,6 +1018,7 @@ def _render_refinement_tab(tab, _busy, _rec, _clean):
                 # Preset checkboxes (multi-select)
                 preset_items = [
                     ("preset_upscale", "preset_upscale_prompt"),
+                    ("preset_fix_content", "preset_fix_content_prompt"),
                     ("preset_fix_text", "preset_fix_text_prompt"),
                     ("preset_bolder_text", "preset_bolder_text_prompt"),
                     ("preset_text_to_english", "preset_text_to_english_prompt"),
