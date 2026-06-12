@@ -146,7 +146,20 @@ class PolishAgent(BaseAgent):
         
         # Step 2: Polish Image using suggestions
         print(f"🎨 [Step 2] Polishing image with suggestions...")
-        user_prompt = f"Please polish this image based on the following suggestions:\n\n{suggestions}\n\nPolished Image:"
+
+        # Inject Korean preservation directive
+        lang_note = ""
+        diagram_language = data.get("diagram_language", "en")
+        if diagram_language == "ko":
+            lang_note = (
+                "\n\n**CRITICAL — KOREAN TEXT PRESERVATION:**\n"
+                "- All Korean (한국어) text labels in this image MUST be preserved exactly.\n"
+                "- Do NOT translate Korean to English. Do NOT alter Korean characters.\n"
+                "- If Korean text appears garbled, re-render it as proper complete syllable blocks.\n"
+                "- Model names/abbreviations in English (LLM, BERT, etc.) should stay in English.\n"
+            )
+
+        user_prompt = f"Please polish this image based on the following suggestions:\n\n{suggestions}{lang_note}\n\nPolished Image:"
         
         # Build content list with GT image
         content_list = [

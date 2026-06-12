@@ -108,12 +108,20 @@ class CriticAgent(BaseAgent):
                 "text": "\n[SYSTEM NOTICE] The plot image could not be generated based on the current description (likely due to invalid code). Please check the description for errors (e.g., syntax issues, missing data) and provide a revised version."
             })
 
-        # Inject Korean label preservation directive
+        # Inject Korean label preservation and validation directive
         diagram_language = data.get("diagram_language", "en")
         lang_note = ""
         if diagram_language == "ko":
-            lang_note = ("\n**LANGUAGE NOTE:** This diagram uses Korean text labels. "
-                "Preserve all Korean labels in your revised description.")
+            lang_note = (
+                "\n\n**KOREAN TEXT VALIDATION (한국어 검증):**\n"
+                "1. Check every Korean label for garbled characters (깨진 글자).\n"
+                "   - Garbled example: '인폭 구센' (should be '입력 구성'), '텍스ㅡ' (should be '텍스트')\n"
+                "   - Jamo separation: 'ㅎㅏㄴㄱㅜㄱ' (should be '한국') — this is WRONG.\n"
+                "2. If Korean text is garbled, include the CORRECT Korean in revised_description.\n"
+                "3. Keep all Korean labels under 10 characters. Split longer labels into two lines.\n"
+                "4. Model names/abbreviations stay in English: LLM, BERT, GPT, ViT.\n"
+                "5. Preserve all correctly rendered Korean labels exactly as they are."
+            )
 
         content_list.append({
             "type": "text",

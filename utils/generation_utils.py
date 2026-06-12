@@ -19,6 +19,7 @@ Utility functions for interacting with Gemini and Claude APIs, image processing,
 import json
 import asyncio
 import base64
+import random
 from io import BytesIO
 from functools import partial
 from ast import literal_eval
@@ -59,21 +60,56 @@ else:
     gemini_client = None
 
 
+# ── Per-event-loop Gemini clients ─────────────────────────────────
+# A genai.Client's async transport is bound to the event loop it first runs
+# on. When multiple threads each call asyncio.run() (parallel paper
+# processing), sharing one global client across loops causes
+# "Event loop is closed" / "cannot schedule new futures after shutdown".
+# Cache one client per running event loop instead.
+import threading as _threading
+import weakref as _weakref
+
+_loop_clients: "_weakref.WeakKeyDictionary" = _weakref.WeakKeyDictionary()
+_loop_clients_lock = _threading.Lock()
+
+
+def get_gemini_client():
+    """Return a genai.Client bound to the current event loop (thread-safe)."""
+    if not api_key:
+        return None
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return gemini_client  # sync context — use the module-level client
+    with _loop_clients_lock:
+        client = _loop_clients.get(loop)
+        if client is None:
+            client = genai.Client(api_key=api_key)
+            _loop_clients[loop] = client
+        return client
+
+
+# Errors that can never succeed on retry — abort immediately instead of
+# burning max_attempts × 30s (observed: 12-min hangs after Ctrl+C).
+_FATAL_ERROR_MARKERS = (
+    "cannot schedule new futures",   # executor / interpreter shutdown
+    "interpreter shutdown",
+    "event loop is closed",
+)
+
+
+def _is_fatal_error(error_str: str) -> bool:
+    low = error_str.lower()
+    return any(m in low for m in _FATAL_ERROR_MARKERS)
+
+
+# Anthropic / OpenAI: optional providers — silent when unconfigured
+# (this pipeline uses Gemini only; no warning noise on every import)
 anthropic_api_key = get_config_val("api_keys", "anthropic_api_key", "ANTHROPIC_API_KEY", "")
-if anthropic_api_key:
-    anthropic_client = AsyncAnthropic(api_key=anthropic_api_key)
-    print("Initialized Anthropic Client with API Key")
-else:
-    print("Warning: Could not initialize Anthropic Client. Missing credentials.")
-    anthropic_client = None
+anthropic_client = AsyncAnthropic(api_key=anthropic_api_key) if anthropic_api_key else None
 
 openai_api_key = get_config_val("api_keys", "openai_api_key", "OPENAI_API_KEY", "")
-if openai_api_key:
-    openai_client = AsyncOpenAI(api_key=openai_api_key)
-    print("Initialized OpenAI Client with API Key")
-else:
-    print("Warning: Could not initialize OpenAI Client. Missing credentials.")
-    openai_client = None
+openai_client = AsyncOpenAI(api_key=openai_api_key) if openai_api_key else None
 
 
 
@@ -94,6 +130,13 @@ def _convert_to_gemini_parts(contents: List[Dict[str, Any]]) -> List[types.Part]
                         mime_type=source["media_type"],
                     )
                 )
+        elif item.get("type") == "pdf":
+            gemini_parts.append(
+                types.Part.from_bytes(
+                    data=item["data"],
+                    mime_type=item.get("mime_type", "application/pdf"),
+                )
+            )
     return gemini_parts
 
 
@@ -115,21 +158,29 @@ async def call_gemini_with_retry_async(
     if config.candidate_count > 8:
         config.candidate_count = 8
 
+    # 503 fallback: after repeated UNAVAILABLE (capacity) errors, switch to a
+    # fallback model if one is configured. e.g. fallback_model_name: gemini-2.5-flash-lite
+    fallback_model = get_config_val(
+        "defaults", "fallback_model_name", "FALLBACK_MODEL_NAME", ""
+    )
+    consecutive_503 = 0
+    active_model = model_name
+
     current_contents = contents
     for attempt in range(max_attempts):
         try:
-            # Use global client
-            client = gemini_client
+            # Per-event-loop client (safe under thread-parallel asyncio.run)
+            client = get_gemini_client()
 
             # Convert generic content list to Gemini's format right before the API call
             gemini_contents = _convert_to_gemini_parts(current_contents)
             response = await client.aio.models.generate_content(
-                model=model_name, contents=gemini_contents, config=config
+                model=active_model, contents=gemini_contents, config=config
             )
 
             if not response.candidates or not response.candidates[0].content.parts:
                 print(
-                    f"[Warning]: Empty response from {model_name}, retrying in {retry_delay} seconds..."
+                    f"[Warning]: Empty response from {active_model}, retrying in {retry_delay} seconds..."
                 )
                 await asyncio.sleep(retry_delay)
                 continue
@@ -165,19 +216,45 @@ async def call_gemini_with_retry_async(
             context_msg = f" for {error_context}" if error_context else ""
             error_str = str(e)
 
+            # Fast-fail: shutdown/closed-loop states can never recover via retry
+            if _is_fatal_error(error_str):
+                raise RuntimeError(
+                    f"FATAL: non-retryable runtime state{context_msg}: {error_str}"
+                )
+
             # Fast-fail: quota with limit 0 means the model is unavailable — retrying won't help
             if "429" in error_str and "limit: 0" in error_str:
                 raise RuntimeError(
-                    f"QUOTA_ZERO: Model '{model_name}' has zero quota. "
+                    f"QUOTA_ZERO: Model '{active_model}' has zero quota. "
                     f"This is a known intermittent issue with Google's preview models. "
                     f"Quota resets daily at midnight Pacific Time (KST 16:00-17:00)."
                 )
 
-            # Exponential backoff (capped at 30s)
+            # 503 UNAVAILABLE = server-side capacity spike. After 2 consecutive
+            # 503s, switch to the fallback model (different capacity pool).
+            is_503 = "503" in error_str and "UNAVAILABLE" in error_str
+            if is_503:
+                consecutive_503 += 1
+                if (
+                    consecutive_503 >= 2
+                    and fallback_model
+                    and active_model != fallback_model
+                ):
+                    print(
+                        f"[Fallback] {active_model} hit {consecutive_503}x 503 — "
+                        f"switching to {fallback_model}"
+                    )
+                    active_model = fallback_model
+            else:
+                consecutive_503 = 0
+
+            # Exponential backoff (capped at 30s) + jitter so parallel workers
+            # don't retry in lockstep (thundering herd against a loaded server)
             current_delay = min(retry_delay * (2 ** attempt), 30)
+            current_delay = round(current_delay * random.uniform(0.7, 1.3), 1)
 
             print(
-                f"Attempt {attempt + 1} for model {model_name} failed{context_msg}: {e}. Retrying in {current_delay} seconds..."
+                f"Attempt {attempt + 1} for model {active_model} failed{context_msg}: {e}. Retrying in {current_delay} seconds..."
             )
 
             if attempt < max_attempts - 1:
@@ -283,6 +360,10 @@ async def call_claude_with_retry_async(
         except Exception as e:
             error_str = str(e).lower()
             context_msg = f" for {error_context}" if error_context else ""
+            if _is_fatal_error(error_str):
+                raise RuntimeError(
+                    f"FATAL: non-retryable runtime state{context_msg}: {error_str}"
+                )
             print(
                 f"Validation attempt {attempt + 1} failed{context_msg}: {error_str}. Retrying in {retry_delay} seconds..."
             )
@@ -367,6 +448,10 @@ async def call_openai_with_retry_async(
         except Exception as e:
             error_str = str(e).lower()
             context_msg = f" for {error_context}" if error_context else ""
+            if _is_fatal_error(error_str):
+                raise RuntimeError(
+                    f"FATAL: non-retryable runtime state{context_msg}: {error_str}"
+                )
             print(
                 f"Validation attempt {attempt + 1} failed{context_msg}: {error_str}. Retrying in {retry_delay} seconds..."
             )
@@ -452,6 +537,10 @@ async def call_openai_image_generation_with_retry_async(
 
         except Exception as e:
             context_msg = f" for {error_context}" if error_context else ""
+            if _is_fatal_error(str(e)):
+                raise RuntimeError(
+                    f"FATAL: non-retryable runtime state{context_msg}: {e}"
+                )
             print(
                 f"Attempt {attempt + 1} for OpenAI image generation model {model_name} failed{context_msg}: {e}. Retrying in {retry_delay} seconds..."
             )

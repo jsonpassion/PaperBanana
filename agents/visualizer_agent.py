@@ -95,7 +95,19 @@ class VisualizerAgent(BaseAgent):
             self.task_config = {
                 "task_name": "diagram",
                 "use_image_generation": True,  # Use direct image generation
-                "prompt_template": "Render an image based on the following detailed description: {desc}\n Note that do not include figure titles in the image. Diagram: ",
+                "prompt_template": (
+                    "Create a high-quality infographic diagram based on this description:\n\n"
+                    "{desc}\n\n"
+                    "QUALITY REQUIREMENTS:\n"
+                    "- Elements must NEVER overlap — maintain clear spacing between all shapes, text, and arrows\n"
+                    "- Use vibrant, harmonious colors (gradients and shadows welcome)\n"
+                    "- Rich visual style: rounded shapes, professional icons, clean typography\n"
+                    "- Clear directional flow (left→right or top→bottom)\n"
+                    "- Text labels must be crisp, readable, and properly sized\n"
+                    "- White or soft pastel background — NOT plain grey or black\n"
+                    "- Do NOT include a figure title or caption in the image itself\n"
+                    "Diagram:"
+                ),
                 "max_output_tokens": 8192,
             }
 
@@ -145,13 +157,21 @@ class VisualizerAgent(BaseAgent):
 
             # Inject Korean rendering directive for diagram tasks
             if diagram_language == "ko" and cfg["task_name"] == "diagram":
-                prompt_text += ("\n**IMPORTANT:** Render all text labels and annotations "
-                    "in Korean (한국어) exactly as specified. Ensure Korean text is clearly legible.")
+                prompt_text += (
+                    "\n\n**KOREAN TEXT RENDERING RULES (매우 중요):**\n"
+                    "- Render all text labels in Korean (한국어) exactly as written in the description.\n"
+                    "- Use a clean sans-serif font (e.g., Gothic, Noto Sans KR) for Korean text.\n"
+                    "- Korean characters are wider than Latin — leave 20% extra horizontal padding.\n"
+                    "- Each Korean label must be a COMPLETE syllable block (완성형). Never split into jamo (자모).\n"
+                    "- Keep labels short (under 10 characters). If longer, split into two lines.\n"
+                    "- Abbreviations and model names stay in English: LLM, BERT, GPT, ViT.\n"
+                    "- Do NOT overlap text with other elements. Ensure clear spacing around every label."
+                )
 
             content_list = [{"type": "text", "text": prompt_text}]
             
-            # Image generation uses lower temperature for faithful rendering
-            vis_temperature = 0.6 if cfg["use_image_generation"] else self.exp_config.temperature
+            # Diagrams: 0.75 for richer creative output; plots: lower for code accuracy
+            vis_temperature = 0.75 if cfg["use_image_generation"] else self.exp_config.temperature
             gen_config_args = {
                 "system_instruction": self.system_prompt,
                 "temperature": vis_temperature,
@@ -228,7 +248,29 @@ class VisualizerAgent(BaseAgent):
         return data
 
 
-DIAGRAM_VISUALIZER_AGENT_SYSTEM_PROMPT = """You are an expert scientific diagram illustrator. Generate high-quality scientific diagrams based on user requests. You must render EXACTLY what is described — do not add, remove, or substitute any elements. The generated image must faithfully match the provided description in both content and layout."""
+DIAGRAM_VISUALIZER_AGENT_SYSTEM_PROMPT = """You are an elite infographic designer and scientific illustrator for top AI research publications (NeurIPS, ICML, ICLR).
+
+## Core Mandate
+Generate visually STUNNING, publication-ready diagrams that look like professional editorial infographics — NOT like code-generated charts.
+
+## Visual Quality Standards
+- **Rich colors**: Use vibrant, harmonious palettes with gradients and subtle shadows. Never flat monochrome.
+- **Zero overlap**: Every element (shape, label, arrow) must have clear padding (≥15px equivalent). If elements crowd, simplify rather than overlap.
+- **Professional layout**: Clean grid alignment, consistent spacing, logical information hierarchy.
+- **Typography**: Bold sans-serif for headings, regular for labels. Text must be crisp and legible.
+- **Background**: Soft white or light pastel — never dark grey or plain black.
+- **Shapes**: Rounded rectangles for process nodes, cylinders for storage, 3D cuboids for data tensors.
+- **Arrows**: Smooth curved or clean orthogonal connectors with proper arrowheads.
+
+## Style Archetype
+Think: "A beautifully designed NeurIPS paper figure, as if crafted by a professional graphic designer." Rich but not cluttered. Modern but not garish.
+
+## Strict Rules
+1. Render EXACTLY the described content — do not add or remove semantic elements.
+2. NEVER overlap text with shapes or arrows with labels.
+3. NEVER produce a matplotlib-style chart when asked for an architecture/flow diagram.
+4. DO NOT include figure titles or captions within the image.
+5. Korean text must use clean Gothic-style font; each syllable block must be complete."""
 
 PLOT_VISUALIZER_AGENT_SYSTEM_PROMPT = """You are an expert statistical plot illustrator. Write code to generate high-quality statistical plots based on user requests."""
 

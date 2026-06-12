@@ -480,6 +480,15 @@ def display_candidate_result(result, candidate_id, exp_mode):
                 key=f"download_candidate_{candidate_id}",
                 width="stretch"
             )
+
+            # Add refine button (send to Tab 2)
+            if st.button(
+                t("refine_from_candidate_button"),
+                key=f"refine_candidate_{candidate_id}",
+                width="stretch"
+            ):
+                st.session_state["refine_candidate_image"] = img
+                st.toast(t("refine_candidate_sent_toast"))
         else:
             st.error(t("error_decode", id=candidate_id))
     else:
@@ -686,6 +695,63 @@ def _render_generation_tab(tab, _busy, _rec, _clean):
 
         if input_mode == t("input_mode_simple"):
             st.caption(t("simple_mode_caption"))
+
+            # ── PDF Upload & Analysis ──
+            pdf_file = st.file_uploader(
+                t("pdf_upload_label"),
+                type=["pdf"],
+                key="pdf_uploader",
+                help=t("pdf_upload_help"),
+            )
+
+            if pdf_file is not None:
+                # Detect file change and reset suggestions
+                file_id = f"{pdf_file.name}_{pdf_file.size}"
+                if st.session_state.get("_pdf_file_id") != file_id:
+                    st.session_state["_pdf_file_id"] = file_id
+                    st.session_state.pop("pdf_suggestions", None)
+
+                # Size check (20 MB)
+                if pdf_file.size > 20 * 1024 * 1024:
+                    st.error(t("pdf_size_error"))
+                elif st.button(t("pdf_analyze_button"), key="pdf_analyze_btn", disabled=_busy):
+                    st.session_state["processing"] = True
+                    with st.spinner(t("pdf_analyze_spinner")):
+                        try:
+                            from utils.pdf_analyzer import analyze_pdf_for_diagrams
+                            lang = st.session_state.get("language", "ko")
+                            pdf_bytes = pdf_file.getvalue()
+                            suggestions = run_async(analyze_pdf_for_diagrams(pdf_bytes, language=lang))
+                            st.session_state["pdf_suggestions"] = suggestions
+                        except Exception as e:
+                            if "QUOTA_ZERO" in str(e):
+                                st.warning(t("error_quota_zero"))
+                            else:
+                                st.error(t("pdf_analyze_error", error=e))
+                        finally:
+                            st.session_state["processing"] = False
+                            st.rerun()
+
+            # Show suggestions if available
+            if "pdf_suggestions" in st.session_state and st.session_state["pdf_suggestions"]:
+                suggestions = st.session_state["pdf_suggestions"]
+                st.markdown(t("pdf_suggestions_header"))
+                selected = []
+                for i, s in enumerate(suggestions):
+                    section_tag = f" [{s['section']}]" if s.get("section") else ""
+                    label = f"**{s['title']}**{section_tag}: {s['description']}"
+                    if st.checkbox(label, value=True, key=f"pdf_sugg_{i}"):
+                        selected.append(s)
+
+                if selected and st.button(t("pdf_use_selected_button"), key="pdf_use_btn", type="primary", width="stretch"):
+                    lines = []
+                    for s in selected:
+                        lines.append(f"- {s['title']}: {s['description']}")
+                    st.session_state["simple_desc_input"] = "\n".join(lines)
+                    st.session_state.pop("pdf_suggestions", None)
+                    st.rerun()
+
+            # ── Text area ──
             simple_desc = st.text_area(
                 t("simple_mode_input_label"),
                 height=100,
@@ -997,15 +1063,29 @@ def _render_refinement_tab(tab, _busy, _rec, _clean):
             help=t("file_uploader_help")
         )
 
+        # Determine image source: uploaded file takes priority, then candidate from Tab 1
+        uploaded_image = None
+
         if uploaded_file is not None:
+            # New upload clears candidate image
+            st.session_state.pop("refine_candidate_image", None)
             # Reset history when a new file is uploaded
             current_file_id = f"{uploaded_file.name}_{uploaded_file.size}"
             if st.session_state.get("_refine_file_id") != current_file_id:
                 st.session_state["_refine_file_id"] = current_file_id
                 st.session_state.pop("refine_history", None)
                 st.session_state.pop("refine_history_idx", None)
-
             uploaded_image = Image.open(uploaded_file)
+        elif "refine_candidate_image" in st.session_state:
+            st.info(t("refine_candidate_source"))
+            candidate_file_id = "candidate_image"
+            if st.session_state.get("_refine_file_id") != candidate_file_id:
+                st.session_state["_refine_file_id"] = candidate_file_id
+                st.session_state.pop("refine_history", None)
+                st.session_state.pop("refine_history_idx", None)
+            uploaded_image = st.session_state["refine_candidate_image"]
+
+        if uploaded_image is not None:
             col1, col2 = st.columns(2)
 
             with col1:

@@ -101,12 +101,21 @@ class PlannerAgent(BaseAgent):
         # Inject language directive for Korean diagram labels
         diagram_language = data.get("diagram_language", "en")
         if diagram_language == "ko":
-            user_prompt += ("\n\n**IMPORTANT LANGUAGE INSTRUCTION:** "
-                "All text labels, component names, annotations, and any text that will appear "
-                "visually in the diagram MUST be written in Korean (한국어). "
-                "For example, use '검색 에이전트' instead of 'Retriever Agent', "
-                "'입력' instead of 'Input'. "
-                "Technical terms and mathematical notation may remain in English.")
+            user_prompt += ("\n\n**IMPORTANT LANGUAGE INSTRUCTION (한국어):** "
+                "All text labels in the diagram MUST be written in Korean. "
+                "Follow these rules strictly:\n"
+                "1. 라벨은 반드시 10자 이내. 한글은 영어보다 폭이 넓으므로 짧게 작성.\n"
+                "2. 약어/모델명은 영어 유지: LLM, BERT, GPT, ViT, GAN, Transformer\n"
+                "3. 일반 용어는 한국어: Input→입력, Output→출력, Training→학습, Data→데이터\n"
+                "4. 영어+한글 혼합 허용: 'Feature 추출', 'LLM 학습', 'Attention 모듈'\n"
+                "5. 수식/기호 유지: E_s, ⊕, →, +0.24%\n"
+                "6. 각 라벨은 완성된 한글 음절만 사용 (자모 분리 금지)\n\n"
+                "Examples:\n"
+                "- 'Retriever Agent' → '검색 에이전트'\n"
+                "- 'Cross-modal Distillation' → '교차모달 증류'\n"
+                "- 'Speech Encoder [Frozen]' → '음성 인코더 [고정]'\n"
+                "- 'Feature Extraction Module' → 'Feature 추출'\n"
+                "- 'Multi-objective Ranker' → '다중목표 랭커'")
 
         content_list.append({"type": "text", "text": user_prompt})
 

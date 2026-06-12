@@ -216,6 +216,11 @@ TRANSLATIONS = {
         "refine_history_next": "Next ▶",
         "refine_from_this": "Refine from this version",
 
+        # Tab 1 → Tab 2 refine from candidate
+        "refine_from_candidate_button": "✨ Refine this",
+        "refine_candidate_source": "📌 Image from generated candidates",
+        "refine_candidate_sent_toast": "Sent to Refine tab! Click the tab to continue.",
+
         # Language selector
         "language_label": "🌐 Language",
 
@@ -234,8 +239,18 @@ TRANSLATIONS = {
         "input_mode_template": "Template Mode",
         "input_mode_help": "Direct: paste method section and caption. Simple: describe briefly and let AI generate structured text. Template: fill in a structured template.",
 
+        # PDF analysis (Simple mode)
+        "pdf_upload_label": "Upload a research paper PDF",
+        "pdf_upload_help": "Upload a PDF to let AI analyze and suggest diagrams",
+        "pdf_analyze_button": "📄 Analyze Paper",
+        "pdf_analyze_spinner": "Analyzing paper and generating diagram suggestions...",
+        "pdf_analyze_error": "Failed to analyze PDF. Please try again later. ({error})",
+        "pdf_suggestions_header": "### Suggested Diagrams",
+        "pdf_use_selected_button": "✅ Use Selected Suggestions",
+        "pdf_size_error": "PDF file size exceeds the 20MB limit. Please upload a smaller file.",
+
         # Simple mode (Phase 3)
-        "simple_mode_caption": "Describe your diagram idea briefly. AI will generate a structured method section and caption for you.",
+        "simple_mode_caption": "Describe your diagram idea briefly, or upload a PDF to get AI suggestions. AI will generate a structured method section and caption for you.",
         "simple_mode_input_label": "Describe the diagram you want to create",
         "simple_mode_placeholder": "e.g., A pipeline diagram showing how a RAG system retrieves documents, re-ranks them, and generates answers\ne.g., A system architecture diagram for a microservices-based e-commerce platform",
         "simple_mode_generate_button": "🤖 Generate Structured Input",
@@ -448,6 +463,11 @@ TRANSLATIONS = {
         "refine_history_next": "다음 ▶",
         "refine_from_this": "이 버전으로 추가 개선",
 
+        # Tab 1 → Tab 2 refine from candidate
+        "refine_from_candidate_button": "✨ 이 후보 개선하기",
+        "refine_candidate_source": "📌 생성된 후보 이미지",
+        "refine_candidate_sent_toast": "Refine 탭으로 전송했습니다! 탭을 클릭하세요.",
+
         # Language selector
         "language_label": "🌐 언어",
 
@@ -466,8 +486,18 @@ TRANSLATIONS = {
         "input_mode_template": "템플릿 모드",
         "input_mode_help": "직접 입력: 방법론 섹션과 캡션을 직접 작성합니다. 간편 모드: 간단히 설명하면 AI가 구조화된 텍스트를 생성합니다. 템플릿 모드: 구조화된 템플릿의 빈칸을 채웁니다.",
 
+        # PDF analysis (Simple mode)
+        "pdf_upload_label": "논문 PDF 업로드",
+        "pdf_upload_help": "PDF를 업로드하면 AI가 분석하여 다이어그램을 제안합니다",
+        "pdf_analyze_button": "📄 논문 분석",
+        "pdf_analyze_spinner": "논문을 분석하고 다이어그램 제안을 생성하는 중...",
+        "pdf_analyze_error": "PDF 분석에 실패했습니다. 잠시 후 다시 시도해주세요. ({error})",
+        "pdf_suggestions_header": "### 제안된 다이어그램",
+        "pdf_use_selected_button": "✅ 선택한 제안 사용",
+        "pdf_size_error": "PDF 파일 크기가 20MB 제한을 초과합니다. 더 작은 파일을 업로드해주세요.",
+
         # Simple mode (Phase 3)
-        "simple_mode_caption": "다이어그램 아이디어를 간단히 설명하세요. AI가 구조화된 방법론 섹션과 캡션을 생성합니다.",
+        "simple_mode_caption": "다이어그램 아이디어를 간단히 설명하거나, PDF를 업로드하여 AI 제안을 받으세요. AI가 구조화된 방법론 섹션과 캡션을 생성합니다.",
         "simple_mode_input_label": "만들고 싶은 다이어그램을 설명하세요",
         "simple_mode_placeholder": "예: RAG 시스템이 문서를 검색하고 재순위 지정한 후 답변을 생성하는 파이프라인 다이어그램\n예: 마이크로서비스 기반 이커머스 플랫폼의 시스템 아키텍처 다이어그램",
         "simple_mode_generate_button": "🤖 구조화된 입력 생성",
